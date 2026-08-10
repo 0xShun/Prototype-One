@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <div class="student-detail-header">
+        <div>
+            <h2>{{ student.first_name|default:student.username }}</h2>
+            <p class="student-meta-full">{{ profile.program }} • Year {{ profile.year_level }} • @{{ student.username }}</p>
+        </div>
+    </div>
+
+    <div class="result-card">
+        <h3>Add counselor note</h3>
+        <p>Keep a private record of outreach, context, or next steps for this student.</p>
+        <form method="post" class="note-form">
+            {% csrf_token %}
+            {{ note_form.as_p }}
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Save note</button>
+            </div>
+        </form>
+    </div>
+
+    <h3>Counselor notes</h3>
+    {% if notes %}
+        <div class="results-grid">
+            {% for note in notes %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-date">{{ note.created_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="result-summary">{{ note.note }}</p>
+                    <p class="student-meta">Added by {{ note.counselor.first_name|default:note.counselor.username }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No counselor notes yet.</p>
+    {% endif %}
+    
+    {% if results %}
+        <h3>Results history</h3>
+        <div class="results-grid">
+            {% for result in results %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="badge-{{ result.stress_level|lower }}">{{ result.stress_level }}</span>
+                        <span class="result-date">{{ result.created_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="result-summary">{{ result.summary }}</p>
+                    
+                    <div class="result-details">
+                        <h5>Intake data</h5>
+                        <div class="intake-stats">
+                            <div class="stat"><strong>Workload:</strong> {{ result.intake_response.workload_hours }}h</div>
+                            <div class="stat"><strong>Sleep:</strong> {{ result.intake_response.sleep_hours }}h</div>
+                            <div class="stat"><strong>Quality:</strong> {{ result.intake_response.sleep_quality }}</div>
+                            <div class="stat"><strong>Study habits:</strong> {{ result.intake_response.study_habit_score }}/10</div>
+                            <div class="stat"><strong>Social media:</strong> {{ result.intake_response.social_media_hours }}h</div>
+                            <div class="stat"><strong>Deadline pressure:</strong> {{ result.intake_response.deadline_pressure }}/10</div>
+                            <div class="stat"><strong>Class load:</strong> {{ result.intake_response.class_load }}/10</div>
+                            <div class="stat"><strong>Mood and energy:</strong> {{ result.intake_response.mood_energy }}/10</div>
+                            <div class="stat"><strong>Exercise:</strong> {{ result.intake_response.exercise_minutes }} min</div>
+                            <div class="stat"><strong>Sleep consistency:</strong> {{ result.intake_response.sleep_consistency }}/10</div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-recommendations">
+                        <h5>Recommendations</h5>
+                        <ul class="rec-list">
+                            {% for rec in result.recommendations.all %}
+                                <li><strong>{{ rec.factor_name }}</strong>: {{ rec.tip_text }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No results yet for this student.</p>
+    {% endif %}
+</div>
+{% endblock %}

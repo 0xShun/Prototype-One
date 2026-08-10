@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f7cff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="StudentSense">
+    <title>StudentSense</title>
+    {% load static %}
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'logo.png' %}">
+    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20260808">
+</head>
+<body>
+<div class="app-shell-loading" aria-hidden="true">
+    <div class="app-shell-loading__spinner"></div>
+    <span>Loading StudentSense</span>
+</div>
+<div class="refresh-prompt" id="refresh-prompt" role="status" aria-live="polite" hidden>
+    <span>Refresh</span>
+    <button type="button" class="refresh-prompt__button" id="refresh-app-button">Update available</button>
+</div>
+<div class="install-banner" role="status" aria-live="polite">
+    <span>Install App</span>
+    <button type="button" class="install-banner__button">Install App</button>
+</div>
+<header class="app-shell-header">
+    <nav class="top-nav">
+        <a class="brand" href="{% url 'home' %}" aria-label="StudentSense home">
+            <img class="brand-logo" src="{% static 'logo.png' %}" alt="StudentSense">
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" id="nav-toggle" aria-label="Toggle navigation menu">
+            <span class="nav-toggle__icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </button>
+        <div class="nav-links" id="primary-navigation">
+            <a href="{% url 'about' %}">About</a>
+            <a href="{% url 'how_to' %}">How To</a>
+            {% if user.is_authenticated %}
+                {% if user.studentprofile.is_counselor %}
+                    <a href="{% url 'counselor:dashboard' %}">Dashboard</a>
+                    <a href="{% url 'home' %}">Home</a>
+                    <form class="logout-form" method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="nav-button" type="submit">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'intake:create' %}">New Intake</a>
+                    <a href="{% url 'intake:result' %}">My Result</a>
+                    <a href="{% url 'intake:history' %}">Progress</a>
+                    <a href="{% url 'counselor:contact_request' %}">Contact Counselor</a>
+                    <form class="logout-form" method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="nav-button" type="submit">Logout</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+<div class="page">
+    <div class="shell">
+        <div class="offline-draft-banner" role="status" aria-live="polite">
+            <strong>Offline draft support</strong>
+            <span>Your form progress can be saved locally while you are offline.</span>
+        </div>
+        {% block content %}{% endblock %}
+    </div>
+</div>
+<script>
+    window.addEventListener('load', () => {
+        const loading = document.querySelector('.app-shell-loading');
+        if (loading) {
+            loading.remove();
+        }
+    });
+
+    let waitingRegistration = null;
+    const refreshPrompt = document.getElementById('refresh-prompt');
+    const refreshButton = document.getElementById('refresh-app-button');
+    const navToggle = document.getElementById('nav-toggle');
+    const primaryNavigation = document.getElementById('primary-navigation');
+
+    function showRefreshPrompt(registration) {
+        waitingRegistration = registration;
+        if (refreshPrompt) {
+            refreshPrompt.hidden = true;
+        }
+    }
+
+    function handleServiceWorkerUpdate(registration) {
+        if (!registration) {
+            return;
+        }
+
+        if (registration.waiting) {
+            showRefreshPrompt(registration.waiting);
+            return;
+        }
+
+        if (registration.installing) {
+            registration.installing.addEventListener('statechange', () => {
+                if (registration.waiting) {
+                    showRefreshPrompt(registration.waiting);
+                }
+            });
+        }
+    }
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then((registration) => {
+                handleServiceWorkerUpdate(registration);
+                registration.update();
+
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (!newWorker) {
+                        return;
+                    }
+
+                    newWorker.addEventListener('statechange', () => {
+                        handleServiceWorkerUpdate(registration);
+                    });
+                });
+            }).catch(() => {});
+        });
+    }
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', () => {
+            if (waitingRegistration) {
+                waitingRegistration.postMessage({ type: 'SKIP_WAITING' });
+            }
+            window.location.reload();
+        });
+    }
+
+    if (navToggle && primaryNavigation) {
+        navToggle.addEventListener('click', () => {
+            const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+            navToggle.setAttribute('aria-expanded', String(!expanded));
+            primaryNavigation.classList.toggle('is-open', !expanded);
+        });
+
+        primaryNavigation.querySelectorAll('a, button').forEach((element) => {
+            element.addEventListener('click', () => {
+                if (window.matchMedia('(max-width: 640px)').matches) {
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    primaryNavigation.classList.remove('is-open');
+                }
+            });
+        });
+    }
+</script>
+</body>
+</html>

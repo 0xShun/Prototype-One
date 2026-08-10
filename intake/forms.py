@@ -1,0 +1,141 @@
+from django import forms
+
+from .models import IntakeResponse
+
+
+def _scale_help(title, values, example, rationale):
+    lines = [f'{index} = {value}' for index, value in enumerate(values, start=1)]
+    return f'Rate {title} from 1 to 10.\n' + '\n'.join(lines) + f'\nExample: {example}. {rationale}'
+
+
+class IntakeResponseForm(forms.ModelForm):
+    class Meta:
+        model = IntakeResponse
+        fields = [
+            'workload_hours',
+            'sleep_hours',
+            'sleep_quality',
+            'study_habit_score',
+            'social_media_hours',
+            'deadline_pressure',
+            'class_load',
+            'mood_energy',
+            'exercise_minutes',
+            'sleep_consistency',
+        ]
+        labels = {
+            'workload_hours': 'How many hours did schoolwork take up on average?',
+            'sleep_hours': 'How many hours did you sleep on average?',
+            'sleep_quality': 'How would you describe your sleep quality?',
+            'study_habit_score': 'How organized were your study habits this week?',
+            'social_media_hours': 'How many hours did you spend on social media?',
+            'deadline_pressure': 'How pressured did you feel by deadlines?',
+            'class_load': 'How full was your class schedule?',
+            'mood_energy': 'How would you describe your mood and energy?',
+            'exercise_minutes': 'How many minutes did you move or exercise?',
+            'sleep_consistency': 'How consistent was your sleep schedule?',
+        }
+        help_texts = {
+            'workload_hours': 'This helps us understand whether your schedule feels sustainable right now.',
+            'sleep_hours': 'Recovery matters for energy, focus, and how stress shows up.',
+            'sleep_quality': 'Choose the option that feels most accurate for the past week.',
+            'study_habit_score': _scale_help(
+                'your study habits',
+                [
+                    'very unorganized and inconsistent',
+                    'mostly unorganized',
+                    'weak',
+                    'a little weak',
+                    'average',
+                    'somewhat organized',
+                    'organized',
+                    'very organized',
+                    'extremely organized',
+                    'perfectly consistent',
+                ],
+                '8 = organized',
+                'Steady habits can make demands feel easier to manage.',
+            ),
+            'social_media_hours': 'A lot of scrolling can crowd out focus and make evenings feel more draining.',
+            'deadline_pressure': _scale_help(
+                'your deadline pressure',
+                [
+                    'almost no deadlines',
+                    'very few deadlines',
+                    'a light deadline load',
+                    'a few deadlines',
+                    'a moderate deadline load',
+                    'several deadlines',
+                    'a busy deadline load',
+                    'a lot of deadline pressure',
+                    'very heavy pressure',
+                    'constant deadline pressure',
+                ],
+                '8 = a lot of pressure',
+                'High pressure can quickly raise stress.',
+            ),
+            'class_load': _scale_help(
+                'your class load',
+                [
+                    'a very light schedule',
+                    'a light schedule',
+                    'slightly light',
+                    'a little light',
+                    'a moderate schedule',
+                    'somewhat full',
+                    'full',
+                    'very full',
+                    'overloaded',
+                    'extremely overloaded',
+                ],
+                '7 = a packed schedule',
+                'Busy weeks can make everything feel more urgent.',
+            ),
+            'mood_energy': _scale_help(
+                'your mood and energy',
+                [
+                    'very low mood and energy',
+                    'low mood and energy',
+                    'below average',
+                    'somewhat low',
+                    'average',
+                    'somewhat good',
+                    'good',
+                    'very good',
+                    'excellent',
+                    'great mood and energy all around',
+                ],
+                '4 = low energy',
+                'This gives us a simple read on how the week felt emotionally and physically.',
+            ),
+            'exercise_minutes': 'Gentle movement can support mood, focus, and recovery.',
+            'sleep_consistency': _scale_help(
+                'your sleep consistency',
+                [
+                    'your sleep times change a lot',
+                    'very irregular',
+                    'irregular',
+                    'somewhat irregular',
+                    'average',
+                    'somewhat regular',
+                    'regular',
+                    'very regular',
+                    'almost always the same',
+                    'extremely consistent sleep times',
+                ],
+                '8 = regular sleep times',
+                'Stable routines often make stress easier to manage.',
+            ),
+        }
+        widgets = {
+            'sleep_quality': forms.Select(choices=[('Good', 'Good'), ('Fair', 'Fair'), ('Poor', 'Poor')]),
+            'workload_hours': forms.NumberInput(attrs={'min': 0, 'step': 1}),
+            'sleep_hours': forms.NumberInput(attrs={'min': 0, 'step': 1}),
+            'study_habit_score': forms.NumberInput(attrs={'min': 1, 'max': 10, 'step': 1}),
+            'social_media_hours': forms.NumberInput(attrs={'min': 0, 'step': 1}),
+            'deadline_pressure': forms.NumberInput(attrs={'min': 1, 'max': 10, 'step': 1}),
+            'class_load': forms.NumberInput(attrs={'min': 1, 'max': 10, 'step': 1}),
+            'mood_energy': forms.NumberInput(attrs={'min': 1, 'max': 10, 'step': 1}),
+            'exercise_minutes': forms.NumberInput(attrs={'min': 0, 'step': 1}),
+            'sleep_consistency': forms.NumberInput(attrs={'min': 1, 'max': 10, 'step': 1}),
+        }

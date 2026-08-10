@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="chat-page">
+    <div class="chat-shell chat-shell--single">
+        <section class="chat-room chat-room--detail">
+            <div class="chat-room__header">
+                <div class="chat-room__hero">
+                    <div class="chat-room__avatar">{{ contact_request.student.username|slice:':1'|upper }}</div>
+                    <div>
+                        <h2>{{ contact_request.student.first_name|default:contact_request.student.username }}</h2>
+                        <p>Started {{ contact_request.created_at|date:"M d, Y g:i A" }}</p>
+                    </div>
+                </div>
+                <div class="chat-room__status">{{ contact_request.status }}</div>
+            </div>
+
+            <div class="chat-room__messages" id="chat-messages">
+                {% regroup messages by created_at|date:"Y-m-d" as message_groups %}
+                {% for group in message_groups %}
+                    <div class="chat-day-separator">
+                        <span>{{ group.grouper|date:"M d, Y" }}</span>
+                    </div>
+                    {% for message in group.list %}
+                        <div class="chat-row {% if message.sender == 'Counselor' %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
+                            <div class="chat-bubble">
+                                <div class="chat-bubble__meta">
+                                    <span>{{ message.sender }}</span>
+                                    <time>{{ message.created_at|date:"g:i A" }}</time>
+                                </div>
+                                <p>{{ message.body }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+            <div class="chat-room__composer">
+                <form method="post" class="chat-composer">
+                    {% csrf_token %}
+                    {{ form.body }}
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Send reply</button>
+                    </div>
+                </form>
+            </div>
+            <script>
+                window.addEventListener('load', () => {
+                    const messages = document.getElementById('chat-messages');
+                    if (messages) {
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                });
+            </script>
+        </section>
+    </div>
+</div>
+{% endblock %}

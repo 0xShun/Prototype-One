@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Counselor dashboard</h2>
+    <p>Students with Moderate or High stress levels who may benefit from support.</p>
+
+    <h3>Open student contact requests</h3>
+    {% if contact_requests %}
+        <div class="results-grid">
+            {% for request in contact_requests %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="badge-high">{{ request.status }}</span>
+                        <span class="result-date">{{ request.created_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="student-summary"><strong>{{ request.student.first_name|default:request.student.username }}</strong></p>
+                    <p class="result-summary">{{ request.messages.last.body }}</p>
+                    <a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Review request</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No open contact requests right now.</p>
+    {% endif %}
+    
+    {% if students %}
+        <div class="student-list">
+            {% for item in students %}
+                <div class="student-card">
+                    <div class="student-header">
+                        <div>
+                            <h4>{{ item.user.first_name|default:item.user.username }}</h4>
+                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}</p>
+                        </div>
+                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{{ item.latest_result.stress_level }}</span>
+                    </div>
+                    <p class="student-summary">{{ item.latest_result.summary }}</p>
+                    <a href="{% url 'counselor:student_detail' item.user.id %}" class="btn btn-secondary">View full history</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>All students are showing healthy stress levels. Great work!</p>
+    {% endif %}
+
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e6ebf3;">
+    
+    <h3>All students</h3>
+    <p>Complete list of all students with intake submissions.</p>
+    {% if all_students %}
+        <div class="student-list">
+            {% for item in all_students %}
+                <div class="student-card">
+                    <div class="student-header">
+                        <div>
+                            <h4>{{ item.user.first_name|default:item.user.username }}</h4>
+                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}</p>
+                        </div>
+                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{{ item.latest_result.stress_level }}</span>
+                    </div>
+                    <p class="student-summary">{{ item.latest_result.summary }}</p>
+                    <a href="{% url 'counselor:student_detail' item.user.id %}" class="btn btn-secondary">View full history</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No student submissions yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

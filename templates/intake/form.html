@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <div class="intake-intro">
+        <h2>Check in on your current routine</h2>
+        <p>Take a brief snapshot of how the last week has felt so we can generate a supportive summary.</p>
+        <p class="form-guide">These questions are based on established research on student stress, sleep, recovery, and daily routines. They draw on evidence showing that academic workload, deadlines, sleep quality, exercise, and social media use all influence how students feel and function. The items are meant to give a practical snapshot rather than a diagnosis.</p>
+    </div>
+    {% if checkin_standard_note %}
+        <div class="soft-reminder">
+            <strong>Recommended check-in rhythm</strong>
+            <p>{{ checkin_standard_note }}</p>
+        </div>
+    {% endif %}
+    {% if checkin_prompt %}
+        <div class="soft-reminder">
+            <strong>Check-in note</strong>
+            <p>{{ checkin_prompt }}</p>
+        </div>
+    {% endif %}
+    <form method="post" id="intake-form">
+        {% csrf_token %}
+        <section class="intake-section">
+            <h3>How you're managing right now</h3>
+            <p class="intake-section__copy">These questions help us understand how your week feels overall.</p>
+            <div class="intake-field">
+                {{ form.workload_hours.label_tag }}
+                {{ form.workload_hours }}
+                {% if form.workload_hours.help_text %}<div class="helptext">{{ form.workload_hours.help_text }}</div>{% endif %}
+                {{ form.workload_hours.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.study_habit_score.label_tag }}
+                {{ form.study_habit_score }}
+                {% if form.study_habit_score.help_text %}<div class="helptext">{{ form.study_habit_score.help_text }}</div>{% endif %}
+                {{ form.study_habit_score.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mood_energy.label_tag }}
+                {{ form.mood_energy }}
+                {% if form.mood_energy.help_text %}<div class="helptext">{{ form.mood_energy.help_text }}</div>{% endif %}
+                {{ form.mood_energy.errors }}
+            </div>
+        </section>
+
+        <section class="intake-section">
+            <h3>School demands</h3>
+            <p class="intake-section__copy">Think about the shape of your classes and deadlines over the last week.</p>
+            <div class="intake-field">
+                {{ form.deadline_pressure.label_tag }}
+                {{ form.deadline_pressure }}
+                {% if form.deadline_pressure.help_text %}<div class="helptext">{{ form.deadline_pressure.help_text }}</div>{% endif %}
+                {{ form.deadline_pressure.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.class_load.label_tag }}
+                {{ form.class_load }}
+                {% if form.class_load.help_text %}<div class="helptext">{{ form.class_load.help_text }}</div>{% endif %}
+                {{ form.class_load.errors }}
+            </div>
+        </section>
+
+        <section class="intake-section">
+            <h3>Recovery and rest</h3>
+            <p class="intake-section__copy">These questions focus on sleep, recovery, and how often you get a chance to reset.</p>
+            <div class="intake-field">
+                {{ form.sleep_hours.label_tag }}
+                {{ form.sleep_hours }}
+                {% if form.sleep_hours.help_text %}<div class="helptext">{{ form.sleep_hours.help_text }}</div>{% endif %}
+                {{ form.sleep_hours.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.sleep_quality.label_tag }}
+                {{ form.sleep_quality }}
+                {% if form.sleep_quality.help_text %}<div class="helptext">{{ form.sleep_quality.help_text }}</div>{% endif %}
+                {{ form.sleep_quality.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.exercise_minutes.label_tag }}
+                {{ form.exercise_minutes }}
+                {% if form.exercise_minutes.help_text %}<div class="helptext">{{ form.exercise_minutes.help_text }}</div>{% endif %}
+                {{ form.exercise_minutes.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.sleep_consistency.label_tag }}
+                {{ form.sleep_consistency }}
+                {% if form.sleep_consistency.help_text %}<div class="helptext">{{ form.sleep_consistency.help_text }}</div>{% endif %}
+                {{ form.sleep_consistency.errors }}
+            </div>
+        </section>
+
+        <section class="intake-section">
+            <h3>Focus and energy</h3>
+            <p class="intake-section__copy">These inputs help us understand where your attention and energy are going.</p>
+            <div class="intake-field">
+                {{ form.social_media_hours.label_tag }}
+                {{ form.social_media_hours }}
+                {% if form.social_media_hours.help_text %}<div class="helptext">{{ form.social_media_hours.help_text }}</div>{% endif %}
+                {{ form.social_media_hours.errors }}
+            </div>
+        </section>
+        <div class="form-actions">
+            <button class="btn btn-secondary" type="button" id="save-draft-btn">Save draft</button>
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
+    </form>
+</div>
+<script>
+    const intakeForm = document.getElementById('intake-form');
+    const saveDraftButton = document.getElementById('save-draft-btn');
+
+    if (intakeForm && saveDraftButton) {
+        const collectPayload = () => {
+            const data = new FormData(intakeForm);
+            const payload = {};
+            for (const [key, value] of data.entries()) {
+                payload[key] = value;
+            }
+            return payload;
+        };
+
+        const saveDraft = () => {
+            const payload = collectPayload();
+            fetch('{% url "intake:drafts" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ payload })
+            }).catch(() => {});
+        };
+
+        saveDraftButton.addEventListener('click', saveDraft);
+    }
+</script>
+{% endblock %}

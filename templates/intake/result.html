@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Your latest result</h2>
+    {% if result %}
+        <span class="result-badge">{{ result.stress_level }}</span>
+        <div>
+            <h3>Summary</h3>
+            <p>{{ result.summary }}</p>
+        </div>
+        <div>
+            <h3>Suggested support</h3>
+            <ul class="list-stack">
+                {% for recommendation in recommendations %}
+                    <li><strong>{{ recommendation.factor_name }}</strong>: {{ recommendation.tip_text }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <p>No results yet. Complete your intake to see one here.</p>
+    {% endif %}
+</div>
+{% endblock %}

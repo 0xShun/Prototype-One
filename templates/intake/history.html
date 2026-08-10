@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Your progress</h2>
+    <p>A timeline of your check-ins and stress levels over time.</p>
+    {% if checkin_standard_note %}
+        <div class="soft-reminder">
+            <strong>Recommended check-in rhythm</strong>
+            <p>{{ checkin_standard_note }}</p>
+        </div>
+    {% endif %}
+    {% if checkin_prompt %}
+        <div class="soft-reminder">
+            <strong>Check-in note</strong>
+            <p>{{ checkin_prompt }}</p>
+        </div>
+    {% endif %}
+    
+    {% if results %}
+        <div class="history-timeline">
+            {% for result in results %}
+                <div class="timeline-item">
+                    <div class="timeline-badge">
+                        <span class="badge-{{ result.stress_level|lower }}">{{ result.stress_level }}</span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <h4>{{ result.created_at|date:"M d, Y" }}</h4>
+                            <span class="timeline-time">{{ result.created_at|time:"g:i A" }}</span>
+                        </div>
+                        <p>{{ result.summary }}</p>
+                        <div class="timeline-factors">
+                            {% for factor in result.recommendations.all %}
+                                <span class="factor-tag">{{ factor.factor_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No submissions yet. Start your first intake to begin tracking your progress.</p>
+    {% endif %}
+</div>
+{% endblock %}

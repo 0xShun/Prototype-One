@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="banner-hero banner-hero--content">
+    <div>
+        <span class="eyebrow">About StudentSense</span>
+        <h1>A simple platform for student stress check-ins.</h1>
+        <p>StudentSense helps students record routine habits, get an immediate stress snapshot, and look back at changes over time. Counselors can use the dashboard to spot students who may need support.</p>
+    </div>
+    <div class="hero-panel">
+        <div class="metric-grid">
+            <div class="metric"><span>For students</span><strong>Check in and track progress</strong></div>
+            <div class="metric"><span>For counselors</span><strong>Review at-risk students</strong></div>
+            <div class="metric"><span>Current version</span><strong>Platform-ready without the final model</strong></div>
+        </div>
+    </div>
+</div>
+<div class="grid banner-grid">
+    <div class="card">
+        <h3>Why it exists</h3>
+        <p>The goal is to make stress check-ins easy, understandable, and useful without making the experience feel heavy.</p>
+    </div>
+    <div class="card">
+        <h3>What it stores</h3>
+        <p>Each intake becomes a result entry so students can review their own history and counselors can see trends.</p>
+    </div>
+    <div class="card">
+        <h3>What comes next</h3>
+        <p>The prediction layer can later be replaced with a trained model without changing the overall workflow.</p>
+    </div>
+</div>
+<div class="references-block">
+    <h3>References</h3>
+    <p class="form-guide">These are the studies used to shape the intake questions and their supporting guidance.</p>
+    <ul>
+        <li><a href="https://doi.org/10.1111/j.1745-6924.2008.00089.x" target="_blank" rel="noopener noreferrer">Credé, M., &amp; Kuncel, N. R. (2008). Study habits, skills, and attitudes: The third pillar supporting collegiate academic performance.</a></li>
+        <li><a href="https://doi.org/10.1080/02673843.2019.1596823" target="_blank" rel="noopener noreferrer">Pascoe, M. C., Hetrick, S. E., &amp; Parker, A. G. (2020). The impact of stress on students in secondary school and higher education.</a></li>
+        <li><a href="https://doi.org/10.1093/sleep/19.4.318" target="_blank" rel="noopener noreferrer">Pilcher, J. J., &amp; Huffcutt, A. I. (1996). Effects of sleep deprivation on performance: A meta-analysis.</a></li>
+        <li><a href="https://doi.org/10.1176/appi.ajp.2018.17111194" target="_blank" rel="noopener noreferrer">Schuch, F. B., et al. (2018). Physical activity and incident depression: A meta-analysis of prospective cohort studies.</a></li>
+        <li><a href="https://doi.org/10.1521/jscp.2018.37.10.751" target="_blank" rel="noopener noreferrer">Hunt, M. G., Marx, R., Lipson, C., &amp; Young, J. (2018). No more FOMO: Limiting social media decreases loneliness and depression.</a></li>
+    </ul>
+</div>
+{% endblock %}
