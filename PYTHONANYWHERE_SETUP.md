@@ -13,6 +13,8 @@ cd Prototype-One
 
 Use a Python version that PythonAnywhere currently supports and matches your app choice on the Web tab.
 
+This repo pins Django 5.2.x so it works with Python 3.10 on PythonAnywhere. Django 6.x requires Python 3.12+.
+
 ```bash
 mkvirtualenv --python=/usr/bin/python3.10 prototypeone-venv
 workon prototypeone-venv
