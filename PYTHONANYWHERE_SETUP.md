@@ -69,6 +69,13 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 ```
 
+Running `migrate` also creates the `counselor_demo` login for demo access:
+
+- Username: `counselor_demo`
+- Password: `StrongPass123!`
+
+If you already migrated once before pulling this update, run `python manage.py migrate` again after updating the repo so the new seed migration runs.
+
 ## 7) Static files mapping in Web tab
 
 Add static mapping:
