@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
@@ -15,8 +16,8 @@ def create_demo_counselor(apps, schema_editor):
         },
     )
 
-    if created:
-        user.set_password(password)
+    if created or not user.password:
+        user.password = make_password(password)
         user.save(update_fields=['password'])
 
     profile, profile_created = StudentProfile.objects.get_or_create(
