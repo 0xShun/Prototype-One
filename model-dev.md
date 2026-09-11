@@ -25,6 +25,14 @@ The current StudentSense application now uses the collected MBI-SS responses to 
 
 The eventual trained model is a separate step. Its input data will be the custom StudentSense fields, while its target will be created from approved MBI-SS scoring. SHAP will then explain how each custom input contributed to the model's predicted support band.
 
+### Public-data prototype status
+
+A technical prototype was trained from the Hugging Face dataset `eliel2003/student-burnout-analysis2026`, using its 2,000-row sample. The source documentation identifies the data as synthetic and licensed MIT. It does not contain MBI-SS responses or the exact StudentSense custom-input schema, so it is stored locally under `data/public/` and excluded from Git.
+
+The prototype predicts the source dataset's continuous `burnout_score` with LightGBM and generates global SHAP importance. It achieved approximately MAE `0.722`, RMSE `0.937`, and R-squared `0.679` on a held-out sample. These metrics are pipeline checks only. The source's `stress_level` feature is closely related to its synthetic target and was the top SHAP feature, so this artifact must not be deployed or interpreted as evidence for StudentSense performance.
+
+The prototype code is in `model_prototype/train_public_prototype.py`. The final StudentSense model still requires paired custom StudentSense inputs and approved MBI-SS-derived targets from real or appropriately licensed data.
+
 
 Dev note: the MBI-SS score will be the target variable. It will be used for training along with the custom input, but the deployed model will only use the custom input.
 

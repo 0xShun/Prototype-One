@@ -17,6 +17,32 @@
                 <li>Academic efficacy: {{ result.intake_response.mbiss_academic_efficacy_score }}</li>
             </ul>
         </div>
+        <div class="result-model-panel">
+            <h3>Predictive support signal</h3>
+            {% if model_prediction %}
+                <span class="result-badge">{{ model_prediction.label }}</span>
+                <p>This is an additional model-based estimate from your routine answers. It does not replace your MBI-SS result.</p>
+                {% if model_prediction.probabilities %}
+                    <ul class="list-stack">
+                        {% for label, probability in model_prediction.probabilities.items %}
+                            <li>{{ label }}: {{ probability }}%</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if model_prediction.factors %}
+                    <h4>Main factors behind this estimate</h4>
+                    <ul class="list-stack">
+                        {% for factor in model_prediction.factors %}
+                            <li>{{ factor }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <p class="helptext">These factors describe how the model reached its estimate. They do not prove that any factor caused burnout.</p>
+            {% else %}
+                <p class="result-model-panel__pending">A predictive support signal will appear here when enough approved data and a trained model are available.</p>
+                <p class="helptext">Your current MBI-SS result above remains the direct measure for this check-in.</p>
+            {% endif %}
+        </div>
         <div>
             <h3>Suggested support</h3>
             <ul class="list-stack">

@@ -109,6 +109,17 @@ class IntakeFlowTests(TestCase):
         self.assertContains(response, 'High')
         self.assertNotContains(response, 'Low', status_code=200)
 
+    def test_result_page_separates_pending_prediction_from_mbiss_result(self):
+        create_result_for_student(self.student, stress_level='Moderate')
+        self.client.login(username='intakestudent', password='StrongPass123!')
+
+        response = self.client.get(reverse('intake:result'))
+
+        self.assertContains(response, 'Burnout question scores')
+        self.assertContains(response, 'Predictive support signal')
+        self.assertContains(response, 'enough approved data and a trained model')
+        self.assertNotContains(response, 'Low:')
+
     def test_history_lists_results_oldest_to_newest(self):
         create_result_for_student(self.student, stress_level='Low', days_ago=5)
         create_result_for_student(self.student, stress_level='Moderate', days_ago=3)

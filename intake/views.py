@@ -138,7 +138,11 @@ def result_view(request):
         .first()
     )
     recommendations = Recommendation.objects.filter(result=latest).all() if latest else []
-    return render(request, 'intake/result.html', {'result': latest, 'recommendations': recommendations})
+    return render(request, 'intake/result.html', {
+        'result': latest,
+        'recommendations': recommendations,
+        'model_prediction': None,
+    })
 
 
 @login_required
