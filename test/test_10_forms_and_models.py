@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from accounts.forms import StudentRegistrationForm
 from intake.forms import IntakeResponseForm
@@ -116,6 +117,22 @@ class IntakeFormTests(TestCase):
                 'mood_energy',
                 'exercise_minutes',
                 'sleep_consistency',
+                'mbiss_exhaustion_1',
+                'mbiss_exhaustion_2',
+                'mbiss_exhaustion_3',
+                'mbiss_exhaustion_4',
+                'mbiss_exhaustion_5',
+                'mbiss_cynicism_1',
+                'mbiss_cynicism_2',
+                'mbiss_cynicism_3',
+                'mbiss_cynicism_4',
+                'mbiss_academic_efficacy_1',
+                'mbiss_academic_efficacy_2',
+                'mbiss_academic_efficacy_3',
+                'mbiss_academic_efficacy_4',
+                'mbiss_academic_efficacy_5',
+                'mbiss_academic_efficacy_6',
+                'supporting_file',
             ],
         )
 
@@ -124,6 +141,32 @@ class IntakeFormTests(TestCase):
 
         choice_values = [value for value, _ in form.fields['sleep_quality'].widget.choices]
         self.assertEqual(choice_values, ['Good', 'Fair', 'Poor'])
+
+    def test_intake_form_accepts_allowed_supporting_file(self):
+        form = IntakeResponseForm(files={
+            'supporting_file': SimpleUploadedFile(
+                'support-notes.pdf', b'%PDF-1.4 test', content_type='application/pdf'
+            ),
+        })
+
+        self.assertNotIn('supporting_file', form.errors)
+
+    def test_intake_form_accepts_jpg_and_png_supporting_files(self):
+        for filename, content_type in [('photo.jpg', 'image/jpeg'), ('photo.png', 'image/png')]:
+            form = IntakeResponseForm(files={
+                'supporting_file': SimpleUploadedFile(filename, b'image', content_type=content_type),
+            })
+
+            self.assertNotIn('supporting_file', form.errors)
+
+    def test_intake_form_rejects_disallowed_supporting_file(self):
+        form = IntakeResponseForm(files={
+            'supporting_file': SimpleUploadedFile(
+                'unsafe.exe', b'MZ', content_type='application/x-msdownload'
+            ),
+        })
+
+        self.assertIn('supporting_file', form.errors)
 
 
 class ModelTests(TestCase):

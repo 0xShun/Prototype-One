@@ -22,6 +22,13 @@ class StudentContactRequest(models.Model):
 		CLOSED = 'Closed', 'Closed'
 
 	student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='contact_requests')
+	assigned_counselor = models.ForeignKey(
+		User,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name='assigned_contact_requests',
+	)
 	message = models.TextField()
 	counselor_reply = models.TextField(blank=True)
 	replied_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='replied_contact_requests')

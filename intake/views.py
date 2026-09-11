@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.http import FileResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from recommendations.models import Recommendation
@@ -10,79 +12,49 @@ from .forms import IntakeResponseForm
 from .models import IntakeDraft, IntakeResponse, Result
 
 
-def _generate_fake_result(data):
-    workload = data['workload_hours']
-    sleep = data['sleep_hours']
-    sleep_quality = data['sleep_quality']
-    study_habit = data['study_habit_score']
-    social_media = data['social_media_hours']
-    deadline_pressure = data['deadline_pressure']
-    class_load = data['class_load']
-    mood_energy = data['mood_energy']
-    exercise_minutes = data['exercise_minutes']
-    sleep_consistency = data['sleep_consistency']
+def _mbiss_band(score, item_count, reversed_concern=False):
+    """Assign a provisional theoretical-range band, not a clinical cutoff."""
+    minimum = item_count
+    maximum = item_count * 7
+    third = (maximum - minimum) / 3
+    if reversed_concern:
+        concern_score = maximum + minimum - score
+    else:
+        concern_score = score
+    if concern_score <= minimum + third:
+        return 'Low'
+    if concern_score <= minimum + (third * 2):
+        return 'Moderate'
+    return 'High'
 
-    score = 0
-    factors = []
 
-    def add_factor(points, name):
-        nonlocal score
-        score += points
-        if name not in factors:
-            factors.append(name)
+def _generate_mbiss_result(intake):
+    exhaustion = intake.mbiss_exhaustion_score
+    cynicism = intake.mbiss_cynicism_score
+    academic_efficacy = intake.mbiss_academic_efficacy_score
+    bands = {
+        'exhaustion': _mbiss_band(exhaustion, 5),
+        'cynicism': _mbiss_band(cynicism, 4),
+        'academic efficacy': _mbiss_band(academic_efficacy, 6, reversed_concern=True),
+    }
+    high_concern = [name for name, band in bands.items() if band == 'High']
+    moderate_concern = [name for name, band in bands.items() if band == 'Moderate']
 
-    if workload >= 10:
-        add_factor(3, 'workload')
-    elif workload >= 7:
-        add_factor(2, 'workload')
-
-    if sleep <= 5:
-        add_factor(3, 'sleep')
-    elif sleep <= 6:
-        add_factor(2, 'sleep')
-
-    if sleep_quality == 'Poor':
-        add_factor(2, 'sleep quality')
-    elif sleep_quality == 'Fair':
-        add_factor(1, 'sleep quality')
-
-    if study_habit <= 4:
-        add_factor(1, 'study habits')
-
-    if social_media >= 5:
-        add_factor(1, 'social media')
-
-    if deadline_pressure >= 8:
-        add_factor(2, 'deadlines')
-    elif deadline_pressure >= 6:
-        add_factor(1, 'deadlines')
-
-    if class_load >= 8:
-        add_factor(1, 'class load')
-    elif class_load >= 6:
-        add_factor(1, 'class load')
-
-    if mood_energy <= 3:
-        add_factor(2, 'mood and energy')
-    elif mood_energy <= 5:
-        add_factor(1, 'mood and energy')
-
-    if exercise_minutes < 20:
-        add_factor(1, 'exercise')
-
-    if sleep_consistency <= 3:
-        add_factor(1, 'sleep consistency')
-
-    if score >= 8:
+    if bands['exhaustion'] == 'High' and bands['cynicism'] in {'Moderate', 'High'}:
         stress_level = 'High'
-        summary = 'Your workload, deadlines, and recovery signals point to a heavy stretch right now.'
-    elif score >= 4:
+    elif high_concern or len(moderate_concern) >= 2:
         stress_level = 'Moderate'
-        summary = 'A few parts of your routine are starting to add strain, but there is room to adjust.'
     else:
         stress_level = 'Low'
-        summary = 'Your current pattern looks manageable and sustainable.'
-    return stress_level, factors, summary
+
+    factors = [name for name, band in bands.items() if band in {'Moderate', 'High'}]
+    if stress_level == 'High':
+        summary = 'Your MBI-SS responses show elevated exhaustion and academic burnout-related concern.'
+    elif stress_level == 'Moderate':
+        summary = 'Your MBI-SS responses show some areas of academic burnout-related concern worth noticing.'
+    else:
+        summary = 'Your MBI-SS responses do not show elevated concern across the three measured areas.'
+    return stress_level, factors, summary, bands
 
 
 def _checkin_prompt_for(user):
@@ -127,13 +99,13 @@ def save_draft(request):
 @login_required
 def create_intake(request):
     if request.method == 'POST':
-        form = IntakeResponseForm(request.POST)
+        form = IntakeResponseForm(request.POST, request.FILES)
         if form.is_valid():
             intake = form.save(commit=False)
             intake.student = request.user
             intake.save()
 
-            stress_level, factors, summary = _generate_fake_result(form.cleaned_data)
+            stress_level, factors, summary, bands = _generate_mbiss_result(intake)
             result = Result.objects.create(
                 intake_response=intake,
                 stress_level=stress_level,
@@ -159,7 +131,7 @@ def create_intake(request):
 @login_required
 def result_view(request):
     latest = (
-        Result.objects.filter(intake_response__student=request.user)
+        Result.objects.filter(intake_response__student=request.user, archived_at__isnull=True)
         .select_related('intake_response')
         .prefetch_related('recommendations')
         .order_by('-created_at')
@@ -172,7 +144,7 @@ def result_view(request):
 @login_required
 def history_view(request):
     results = (
-        Result.objects.filter(intake_response__student=request.user)
+        Result.objects.filter(intake_response__student=request.user, archived_at__isnull=True)
         .select_related('intake_response')
         .prefetch_related('recommendations')
         .order_by('created_at')
@@ -180,3 +152,21 @@ def history_view(request):
     context = {'results': results}
     context.update(_checkin_prompt_for(request.user))
     return render(request, 'intake/history.html', context)
+
+
+@login_required
+def supporting_file_download(request, intake_id):
+    intake = get_object_or_404(IntakeResponse.objects.select_related('student'), id=intake_id)
+    is_counselor = getattr(getattr(request.user, 'studentprofile', None), 'is_counselor', False)
+    if intake.student_id != request.user.id and not is_counselor:
+        return HttpResponseForbidden('You do not have permission to access this file.')
+    if not intake.supporting_file:
+        return get_object_or_404(IntakeResponse, id=0)
+
+    response = FileResponse(
+        intake.supporting_file.open('rb'),
+        as_attachment=True,
+        filename=Path(intake.supporting_file.name).name,
+    )
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response

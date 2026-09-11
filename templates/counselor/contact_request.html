@@ -3,8 +3,13 @@
 <div class="chat-page">
     <div class="chat-shell chat-shell--single">
         <section class="chat-room chat-room--detail">
-            {% if requests %}
-                {% with active_request=requests.0 %}
+            {% if active_request %}
+                    <div class="chat-room__header">
+                        <div>
+                            <h2>Your support request</h2>
+                            <p>{{ active_request.status }}{% if active_request.assigned_counselor %} · Assigned to {{ active_request.assigned_counselor.first_name|default:active_request.assigned_counselor.username }}{% endif %}</p>
+                        </div>
+                    </div>
                     <div class="chat-room__messages" id="chat-messages">
                         {% regroup active_request.messages.all by created_at|date:"Y-m-d" as message_groups %}
                         {% for group in message_groups %}
@@ -24,12 +29,33 @@
                             {% endfor %}
                         {% endfor %}
                     </div>
-                {% endwith %}
+                    <div class="chat-room__composer">
+                        <form method="post" action="{% url 'counselor:student_reply' active_request.id %}" class="chat-composer">
+                            {% csrf_token %}
+                            <label for="student-reply">Reply to this request</label>
+                            <textarea id="student-reply" name="message" rows="5" placeholder="Add more information or reply to the support conversation."></textarea>
+                            <div class="form-actions">
+                                <button class="btn btn-primary" type="submit">Send reply</button>
+                            </div>
+                        </form>
+                    </div>
             {% else %}
                 <div class="chat-room__messages chat-room__messages--empty" id="chat-messages"></div>
             {% endif %}
 
             <div class="chat-room__composer">
+                {% if requests %}
+                    <div class="chat-thread-list">
+                        {% for request in requests %}
+                            <a class="chat-thread-card" href="{% url 'counselor:contact_request' %}?request_id={{ request.id }}">
+                                <div class="chat-thread-card__content">
+                                    <strong>{{ request.status }}</strong>
+                                    {% if request.assigned_counselor %}<p>Assigned to {{ request.assigned_counselor.first_name|default:request.assigned_counselor.username }}</p>{% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <form method="post" class="chat-composer">
                     {% csrf_token %}
                     {{ form.message }}

@@ -1,13 +1,33 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="form-card">
-    <h2>Counselor dashboard</h2>
-    <p>Students with Moderate or High stress levels who may benefit from support.</p>
+    <h2>Student support</h2>
+    <p>Students with Moderate or High support levels who may benefit from help.</p>
+    <p><a class="text-link" href="{% url 'counselor:archive' %}">Open archived results</a></p>
 
-    <h3>Open student contact requests</h3>
-    {% if contact_requests %}
+    <h3>Requests assigned to you</h3>
+    {% if assigned_requests %}
         <div class="results-grid">
-            {% for request in contact_requests %}
+            {% for request in assigned_requests %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="badge-moderate">{{ request.status }}</span>
+                        <span class="result-date">{{ request.updated_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="student-summary"><strong>{{ request.student.first_name|default:request.student.username }}</strong></p>
+                    <p class="result-summary">{{ request.messages.last.body }}</p>
+                    <a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Open conversation</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No active requests are assigned to you.</p>
+    {% endif %}
+
+    <h3>Unassigned requests</h3>
+    {% if unassigned_requests %}
+        <div class="results-grid">
+            {% for request in unassigned_requests %}
                 <div class="result-card">
                     <div class="result-header">
                         <span class="badge-high">{{ request.status }}</span>
@@ -15,12 +35,12 @@
                     </div>
                     <p class="student-summary"><strong>{{ request.student.first_name|default:request.student.username }}</strong></p>
                     <p class="result-summary">{{ request.messages.last.body }}</p>
-                    <a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Review request</a>
+                    <a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Review and claim</a>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p>No open contact requests right now.</p>
+        <p>No unassigned requests right now.</p>
     {% endif %}
     
     {% if students %}
@@ -46,7 +66,7 @@
     <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e6ebf3;">
     
     <h3>All students</h3>
-    <p>Complete list of all students with intake submissions.</p>
+    <p>Complete list of students who have completed a check-in.</p>
     {% if all_students %}
         <div class="student-list">
             {% for item in all_students %}

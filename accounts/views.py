@@ -1,6 +1,7 @@
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib import messages
 from django.shortcuts import redirect, render
 
 from .forms import StudentRegistrationForm
@@ -20,6 +21,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
+            messages.success(request, 'Your account was created successfully.')
             return redirect('home')
     else:
         form = StudentRegistrationForm()

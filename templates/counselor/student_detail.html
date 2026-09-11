@@ -49,8 +49,11 @@
                     <p class="result-summary">{{ result.summary }}</p>
                     
                     <div class="result-details">
-                        <h5>Intake data</h5>
+                        <h5>Check-in details</h5>
                         <div class="intake-stats">
+                            <div class="stat"><strong>Exhaustion score:</strong> {{ result.intake_response.mbiss_exhaustion_score }}</div>
+                            <div class="stat"><strong>Cynicism score:</strong> {{ result.intake_response.mbiss_cynicism_score }}</div>
+                            <div class="stat"><strong>Academic efficacy:</strong> {{ result.intake_response.mbiss_academic_efficacy_score }}</div>
                             <div class="stat"><strong>Workload:</strong> {{ result.intake_response.workload_hours }}h</div>
                             <div class="stat"><strong>Sleep:</strong> {{ result.intake_response.sleep_hours }}h</div>
                             <div class="stat"><strong>Quality:</strong> {{ result.intake_response.sleep_quality }}</div>
@@ -72,6 +75,13 @@
                             {% endfor %}
                         </ul>
                     </div>
+                    {% if result.intake_response.supporting_file %}
+                        <a class="text-link" href="{% url 'intake:supporting_file_download' result.intake_response.id %}">Download supporting file</a>
+                    {% endif %}
+                    <form method="post" action="{% url 'counselor:archive_result' result.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary" type="submit">Archive this result</button>
+                    </form>
                 </div>
             {% endfor %}
         </div>

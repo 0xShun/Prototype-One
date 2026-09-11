@@ -84,15 +84,38 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.assertNotIn('Research behind these questions', self.page.locator('body').inner_text())
 
         self.page.locator('input[name="workload_hours"]').fill('11')
-        self.page.locator('input[name="sleep_hours"]').fill('4')
-        self.page.locator('select[name="sleep_quality"]').select_option('Poor')
         self.page.locator('input[name="study_habit_score"]').fill('3')
-        self.page.locator('input[name="social_media_hours"]').fill('5')
+        self.page.locator('input[name="mood_energy"]').fill('3')
+        self.page.get_by_role('button', name='Next').click()
+
         self.page.locator('input[name="deadline_pressure"]').fill('9')
         self.page.locator('input[name="class_load"]').fill('8')
-        self.page.locator('input[name="mood_energy"]').fill('3')
+        self.page.get_by_role('button', name='Next').click()
+
+        self.page.locator('input[name="sleep_hours"]').fill('4')
+        self.page.locator('select[name="sleep_quality"]').select_option('Poor')
         self.page.locator('input[name="exercise_minutes"]').fill('10')
         self.page.locator('input[name="sleep_consistency"]').fill('3')
+        self.page.get_by_role('button', name='Next').click()
+
+        self.page.locator('input[name="social_media_hours"]').fill('5')
+        self.page.get_by_role('button', name='Next').click()
+
+        self.page.locator('input[name="mbiss_exhaustion_1"]').fill('6')
+        self.page.locator('input[name="mbiss_exhaustion_2"]').fill('6')
+        self.page.locator('input[name="mbiss_exhaustion_3"]').fill('5')
+        self.page.locator('input[name="mbiss_exhaustion_4"]').fill('6')
+        self.page.locator('input[name="mbiss_exhaustion_5"]').fill('5')
+        self.page.locator('input[name="mbiss_cynicism_1"]').fill('5')
+        self.page.locator('input[name="mbiss_cynicism_2"]').fill('5')
+        self.page.locator('input[name="mbiss_cynicism_3"]').fill('4')
+        self.page.locator('input[name="mbiss_cynicism_4"]').fill('5')
+        self.page.locator('input[name="mbiss_academic_efficacy_1"]').fill('3')
+        self.page.locator('input[name="mbiss_academic_efficacy_2"]').fill('3')
+        self.page.locator('input[name="mbiss_academic_efficacy_3"]').fill('4')
+        self.page.locator('input[name="mbiss_academic_efficacy_4"]').fill('3')
+        self.page.locator('input[name="mbiss_academic_efficacy_5"]').fill('4')
+        self.page.locator('input[name="mbiss_academic_efficacy_6"]').fill('3')
         self.page.get_by_role('button', name='Submit').click()
         self.page.wait_for_url(f'{self.live_server_url}/intake/result/')
         self.assertIn('Your latest result', self.page.locator('body').inner_text())
@@ -121,12 +144,12 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.page.wait_for_url(f'{self.live_server_url}/')
 
         self.page.goto(f'{self.live_server_url}/counselor/dashboard/')
-        self.assertIn('Counselor dashboard', self.page.locator('body').inner_text())
+        self.assertIn('Student support', self.page.locator('body').inner_text())
         self.assertIn('browserrisk', self.page.locator('body').inner_text())
 
         self.page.get_by_role('link', name='View full history').first.click()
         self.assertIn('Results history', self.page.locator('body').inner_text())
-        self.assertIn('INTAKE DATA', self.page.locator('body').inner_text())
+        self.assertIn('CHECK-IN DETAILS', self.page.locator('body').inner_text())
 
     def test_counselor_chat_looks_like_a_messenger_thread(self):
         counselor = create_counselor('browserchatcounselor')
@@ -162,6 +185,8 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.page.wait_for_url(f'{self.live_server_url}/')
 
         self.page.goto(f'{self.live_server_url}/counselor/contact/{thread.id}/')
+        self.page.get_by_role('button', name='Claim request').click()
+        self.page.wait_for_url(f'{self.live_server_url}/counselor/contact/{thread.id}/')
         incoming_bubble = self.page.locator('.chat-row--incoming .chat-bubble').first
         incoming_box = incoming_bubble.bounding_box()
         messages_box = self.page.locator('#chat-messages').bounding_box()

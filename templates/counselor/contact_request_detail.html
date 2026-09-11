@@ -14,6 +14,15 @@
                 <div class="chat-room__status">{{ contact_request.status }}</div>
             </div>
 
+            {% if contact_request.assigned_counselor %}
+                <p class="chat-room__assignment">Assigned to {{ contact_request.assigned_counselor.first_name|default:contact_request.assigned_counselor.username }}</p>
+            {% else %}
+                <form method="post" action="{% url 'counselor:claim_contact_request' contact_request.id %}" class="chat-room__claim">
+                    {% csrf_token %}
+                    <button class="btn btn-primary" type="submit">Claim request</button>
+                </form>
+            {% endif %}
+
             <div class="chat-room__messages" id="chat-messages">
                 {% regroup messages by created_at|date:"Y-m-d" as message_groups %}
                 {% for group in message_groups %}
@@ -34,15 +43,23 @@
                 {% endfor %}
             </div>
 
-            <div class="chat-room__composer">
-                <form method="post" class="chat-composer">
-                    {% csrf_token %}
-                    {{ form.body }}
-                    <div class="form-actions">
-                        <button class="btn btn-primary" type="submit">Send reply</button>
-                    </div>
-                </form>
-            </div>
+            {% if contact_request.assigned_counselor_id == request.user.id %}
+                <div class="chat-room__composer">
+                    <form method="post" class="chat-composer">
+                        {% csrf_token %}
+                        {{ form.body }}
+                        <div class="form-actions">
+                            <button class="btn btn-primary" type="submit">Send reply</button>
+                        </div>
+                    </form>
+                    {% if contact_request.status == 'In progress' %}
+                        <form method="post" action="{% url 'counselor:close_contact_request' contact_request.id %}" class="form-actions">
+                            {% csrf_token %}
+                            <button class="btn btn-secondary" type="submit">Close request</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
             <script>
                 window.addEventListener('load', () => {
                     const messages = document.getElementById('chat-messages');

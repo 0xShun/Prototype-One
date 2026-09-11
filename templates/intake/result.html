@@ -8,6 +8,15 @@
             <h3>Summary</h3>
             <p>{{ result.summary }}</p>
         </div>
+        <div class="result-details">
+            <h3>Burnout question scores</h3>
+            <p>These scores are based on your MBI-SS responses. They are support information, not a diagnosis.</p>
+            <ul class="list-stack">
+                <li>Exhaustion: {{ result.intake_response.mbiss_exhaustion_score }}</li>
+                <li>Cynicism: {{ result.intake_response.mbiss_cynicism_score }}</li>
+                <li>Academic efficacy: {{ result.intake_response.mbiss_academic_efficacy_score }}</li>
+            </ul>
+        </div>
         <div>
             <h3>Suggested support</h3>
             <ul class="list-stack">
@@ -16,8 +25,11 @@
                 {% endfor %}
             </ul>
         </div>
+        {% if result.intake_response.supporting_file %}
+            <p><a class="text-link" href="{% url 'intake:supporting_file_download' result.intake_response.id %}">Download your supporting file</a></p>
+        {% endif %}
     {% else %}
-        <p>No results yet. Complete your intake to see one here.</p>
+        <p>No results yet. Complete a check-in to see one here.</p>
     {% endif %}
 </div>
 {% endblock %}

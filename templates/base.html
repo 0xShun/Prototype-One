@@ -40,27 +40,33 @@
             </span>
         </button>
         <div class="nav-links" id="primary-navigation">
-            <a href="{% url 'about' %}">About</a>
-            <a href="{% url 'how_to' %}">How To</a>
             {% if user.is_authenticated %}
                 {% if user.studentprofile.is_counselor %}
-                    <a href="{% url 'counselor:dashboard' %}">Dashboard</a>
                     <a href="{% url 'home' %}">Home</a>
+                    <a href="{% url 'counselor:dashboard' %}">Student support</a>
+                    <a href="{% url 'counselor:archive' %}">Archived results</a>
+                    <a href="{% url 'how_to' %}">How to use it</a>
+                    <a href="{% url 'about' %}">About StudentSense</a>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
                     </form>
                 {% else %}
-                    <a href="{% url 'intake:create' %}">New Intake</a>
-                    <a href="{% url 'intake:result' %}">My Result</a>
-                    <a href="{% url 'intake:history' %}">Progress</a>
-                    <a href="{% url 'counselor:contact_request' %}">Contact Counselor</a>
+                    <a href="{% url 'home' %}">Home</a>
+                    <a href="{% url 'intake:create' %}">New check-in</a>
+                    <a href="{% url 'intake:result' %}">Latest result</a>
+                    <a href="{% url 'intake:history' %}">My progress</a>
+                    <a href="{% url 'counselor:contact_request' %}">Contact support</a>
+                    <a href="{% url 'how_to' %}">How to use it</a>
+                    <a href="{% url 'about' %}">About StudentSense</a>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
                     </form>
                 {% endif %}
             {% else %}
+                <a href="{% url 'about' %}">About</a>
+                <a href="{% url 'how_to' %}">How To</a>
                 <a href="{% url 'login' %}">Login</a>
                 <a href="{% url 'register' %}">Register</a>
             {% endif %}
@@ -69,6 +75,13 @@
 </header>
 <div class="page">
     <div class="shell">
+        {% if messages %}
+            <div class="site-messages" role="status" aria-live="polite">
+                {% for message in messages %}
+                    <div class="site-message site-message--{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
         <div class="offline-draft-banner" role="status" aria-live="polite">
             <strong>Offline draft support</strong>
             <span>Your form progress can be saved locally while you are offline.</span>

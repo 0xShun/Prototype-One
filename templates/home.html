@@ -4,10 +4,10 @@
     <div>
         <span class="eyebrow">Calm, data-led support</span>
         <h1>Understand your stress before it becomes overwhelming.</h1>
-        <p>StudentSense is a simple student support platform. Before login, this page introduces the platform, explains what it does, and gives new users a clear place to begin.</p>
+        <p>StudentSense is a simple student support platform. This page introduces the platform and gives new users a clear place to begin.</p>
         <div class="hero-actions">
             {% if user.is_authenticated %}
-                <a class="btn btn-primary" href="{% url 'intake:create' %}">Start your intake</a>
+                <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
                 <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
             {% else %}
                 <a class="btn btn-primary" href="{% url 'register' %}">Create an account</a>
@@ -19,7 +19,7 @@
         <div class="banner-card">
             <span class="banner-label">What this platform does</span>
             <h2>Banner page for first-time visitors</h2>
-            <p>Use the intake to check in, view your result, and track your history. Counselors can review students who need support.</p>
+            <p>Use a check-in to reflect on your week, view your result, and track your progress. Counselors can review students who need support.</p>
         </div>
         <div class="metric-grid">
             <div class="metric"><span>Current focus</span><strong>Workload + recovery balance</strong></div>
@@ -31,7 +31,7 @@
 <div class="grid">
     <div class="card">
         <h3>Fast check-in</h3>
-        <p>Complete a short intake to see a supportive snapshot of your current stress indicators.</p>
+        <p>Complete a short check-in to see a supportive snapshot of how your week is going.</p>
     </div>
     <div class="card">
         <h3>Clear recommendations</h3>

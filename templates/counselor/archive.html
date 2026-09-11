@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Archived results</h2>
+    <p>Results you archived are kept here so they can be restored or permanently deleted.</p>
+    {% if archived_results %}
+        <div class="results-grid">
+            {% for result in archived_results %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <strong>{{ result.intake_response.student.first_name|default:result.intake_response.student.username }}</strong>
+                        <span class="result-date">Archived {{ result.archived_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="result-summary">{{ result.summary }}</p>
+                    <p class="student-meta">Archived by {{ result.archived_by.first_name|default:result.archived_by.username }}</p>
+                    <div class="archive-actions">
+                        <form method="post" action="{% url 'counselor:restore_result' result.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-secondary" type="submit">Restore</button>
+                        </form>
+                        <form method="post" action="{% url 'counselor:delete_archived_result' result.id %}" onsubmit="return window.confirm('Permanently delete this archived result and its supporting file?');">
+                            {% csrf_token %}
+                            <button class="btn btn-secondary" type="submit">Permanently delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No archived results yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

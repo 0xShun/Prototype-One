@@ -5,8 +5,10 @@
   --panel-2: #f8fbff;
   --text: #14213d;
   --muted: #5f6f8f;
-  --accent: #4f7cff;
-  --accent-2: #3ac0ff;
+  --office-primary: #4f7cff;
+  --office-secondary: #3ac0ff;
+  --accent: var(--office-primary);
+  --accent-2: var(--office-secondary);
   --stroke: #e6ebf3;
   --success: #2ec27e;
   --warning: #f7b267;
@@ -15,6 +17,7 @@
 * { box-sizing: border-box; }
 body {
   margin: 0;
+  font-size: 1.0625rem;
   font-family: Inter, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
   background: linear-gradient(135deg, #f8fbff 0%, var(--bg-soft) 100%);
@@ -23,7 +26,52 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.site-messages {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.site-message {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(46, 194, 126, 0.12);
+  border: 1px solid rgba(46, 194, 126, 0.2);
+  color: #236b49;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.archive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.archive-actions form {
+  margin: 0;
+}
+
+.archive-actions .btn {
+  min-height: 44px;
+}
+
+.archive-actions .btn:last-child {
+  background: #fff2f0;
+  color: #b24b47;
+  border-color: rgba(178, 75, 71, 0.16);
+}
+
 a { color: inherit; text-decoration: none; }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(58, 192, 255, 0.8);
+  outline-offset: 3px;
+}
 
 .app-shell-loading {
   position: fixed;
@@ -402,6 +450,32 @@ h1, h2, h3 { margin-top: 0; }
 .auth-card form p, .form-card form p { display: grid; gap: 0.35rem; margin-bottom: 0.9rem; }
 .intake-intro { margin-bottom: 1.2rem; }
 .intake-intro h2 { margin-bottom: 0.35rem; }
+.intake-progress {
+  margin: 1rem 0 1.2rem;
+}
+.intake-progress__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.intake-progress__track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ebf3;
+}
+.intake-progress__track span {
+  display: block;
+  height: 100%;
+  width: 20%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.25s ease;
+}
 .intake-section {
   margin: 1rem 0 1.2rem;
   padding: 1rem;
@@ -1275,3 +1349,29 @@ input:focus, select:focus, textarea:focus { outline: 2px solid rgba(20, 33, 61, 
 }
 
 .rec-list strong { color: var(--text); }
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}
+
+.form-actions form {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .form-actions,
+  .archive-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions .btn,
+  .archive-actions .btn,
+  .archive-actions form {
+    width: 100%;
+  }
+}

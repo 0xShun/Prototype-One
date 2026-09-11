@@ -18,10 +18,10 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
 
-from .views import offline_page, service_worker_js
+from .views import home, offline_page, service_worker_js
 
 urlpatterns = [
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', home, name='home'),
     path('sw.js', service_worker_js, name='service_worker'),
     path('offline/', offline_page, name='offline'),
     path('about/', TemplateView.as_view(template_name='about.html'), name='about'),

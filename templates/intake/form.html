@@ -2,9 +2,9 @@
 {% block content %}
 <div class="form-card">
     <div class="intake-intro">
-        <h2>Check in on your current routine</h2>
+        <h2>Start a check-in</h2>
         <p>Take a brief snapshot of how the last week has felt so we can generate a supportive summary.</p>
-        <p class="form-guide">These questions are based on established research on student stress, sleep, recovery, and daily routines. They draw on evidence showing that academic workload, deadlines, sleep quality, exercise, and social media use all influence how students feel and function. The items are meant to give a practical snapshot rather than a diagnosis.</p>
+        <p class="form-guide">These questions are based on established research about student wellbeing, sleep, recovery, and daily routines. They help create a practical support snapshot, not a medical diagnosis.</p>
     </div>
     {% if checkin_standard_note %}
         <div class="soft-reminder">
@@ -18,9 +18,13 @@
             <p>{{ checkin_prompt }}</p>
         </div>
     {% endif %}
-    <form method="post" id="intake-form">
+    <form method="post" id="intake-form" enctype="multipart/form-data">
         {% csrf_token %}
-        <section class="intake-section">
+        <div class="intake-progress" aria-live="polite">
+            <div class="intake-progress__label"><span id="intake-step-label">Step 1 of 5</span><span id="intake-step-percent">20%</span></div>
+            <div class="intake-progress__track" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-label="Check-in progress"><span id="intake-progress-bar"></span></div>
+        </div>
+        <section class="intake-section" data-step="1">
             <h3>How you're managing right now</h3>
             <p class="intake-section__copy">These questions help us understand how your week feels overall.</p>
             <div class="intake-field">
@@ -43,7 +47,7 @@
             </div>
         </section>
 
-        <section class="intake-section">
+        <section class="intake-section" data-step="2">
             <h3>School demands</h3>
             <p class="intake-section__copy">Think about the shape of your classes and deadlines over the last week.</p>
             <div class="intake-field">
@@ -60,7 +64,7 @@
             </div>
         </section>
 
-        <section class="intake-section">
+        <section class="intake-section" data-step="3">
             <h3>Recovery and rest</h3>
             <p class="intake-section__copy">These questions focus on sleep, recovery, and how often you get a chance to reset.</p>
             <div class="intake-field">
@@ -89,7 +93,7 @@
             </div>
         </section>
 
-        <section class="intake-section">
+        <section class="intake-section" data-step="4">
             <h3>Focus and energy</h3>
             <p class="intake-section__copy">These inputs help us understand where your attention and energy are going.</p>
             <div class="intake-field">
@@ -99,22 +103,149 @@
                 {{ form.social_media_hours.errors }}
             </div>
         </section>
+
+        <section class="intake-section" data-step="5">
+            <h3>Burnout questions</h3>
+            <p class="intake-section__copy">Answer these items on a 1–7 scale, where higher values mean the statement applies more often.</p>
+            <div class="intake-field">
+                {{ form.mbiss_exhaustion_1.label_tag }}
+                {{ form.mbiss_exhaustion_1 }}
+                {{ form.mbiss_exhaustion_1.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_exhaustion_2.label_tag }}
+                {{ form.mbiss_exhaustion_2 }}
+                {{ form.mbiss_exhaustion_2.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_exhaustion_3.label_tag }}
+                {{ form.mbiss_exhaustion_3 }}
+                {{ form.mbiss_exhaustion_3.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_exhaustion_4.label_tag }}
+                {{ form.mbiss_exhaustion_4 }}
+                {{ form.mbiss_exhaustion_4.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_exhaustion_5.label_tag }}
+                {{ form.mbiss_exhaustion_5 }}
+                {{ form.mbiss_exhaustion_5.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_cynicism_1.label_tag }}
+                {{ form.mbiss_cynicism_1 }}
+                {{ form.mbiss_cynicism_1.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_cynicism_2.label_tag }}
+                {{ form.mbiss_cynicism_2 }}
+                {{ form.mbiss_cynicism_2.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_cynicism_3.label_tag }}
+                {{ form.mbiss_cynicism_3 }}
+                {{ form.mbiss_cynicism_3.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_cynicism_4.label_tag }}
+                {{ form.mbiss_cynicism_4 }}
+                {{ form.mbiss_cynicism_4.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_1.label_tag }}
+                {{ form.mbiss_academic_efficacy_1 }}
+                {{ form.mbiss_academic_efficacy_1.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_2.label_tag }}
+                {{ form.mbiss_academic_efficacy_2 }}
+                {{ form.mbiss_academic_efficacy_2.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_3.label_tag }}
+                {{ form.mbiss_academic_efficacy_3 }}
+                {{ form.mbiss_academic_efficacy_3.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_4.label_tag }}
+                {{ form.mbiss_academic_efficacy_4 }}
+                {{ form.mbiss_academic_efficacy_4.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_5.label_tag }}
+                {{ form.mbiss_academic_efficacy_5 }}
+                {{ form.mbiss_academic_efficacy_5.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.mbiss_academic_efficacy_6.label_tag }}
+                {{ form.mbiss_academic_efficacy_6 }}
+                {{ form.mbiss_academic_efficacy_6.errors }}
+            </div>
+            <div class="intake-field">
+                {{ form.supporting_file.label_tag }}
+                {{ form.supporting_file }}
+                <div class="helptext">Optional. Upload a PDF, DOC, DOCX, TXT, JPG, or PNG file up to 50 MB if it will help explain your check-in.</div>
+                {{ form.supporting_file.errors }}
+            </div>
+        </section>
         <div class="form-actions">
             <button class="btn btn-secondary" type="button" id="save-draft-btn">Save draft</button>
-            <button class="btn btn-primary" type="submit">Submit</button>
+            <button class="btn btn-secondary" type="button" id="intake-back-btn">Back</button>
+            <button class="btn btn-primary" type="button" id="intake-next-btn">Next</button>
+            <button class="btn btn-primary" type="submit" id="intake-submit-btn" hidden>Submit</button>
         </div>
     </form>
 </div>
 <script>
     const intakeForm = document.getElementById('intake-form');
     const saveDraftButton = document.getElementById('save-draft-btn');
+    const intakeSections = Array.from(document.querySelectorAll('.intake-section[data-step]'));
+    const backButton = document.getElementById('intake-back-btn');
+    const nextButton = document.getElementById('intake-next-btn');
+    const submitButton = document.getElementById('intake-submit-btn');
+    const stepLabel = document.getElementById('intake-step-label');
+    const stepPercent = document.getElementById('intake-step-percent');
+    const progressBar = document.getElementById('intake-progress-bar');
+    let currentStep = 0;
+
+    const updateStep = (stepIndex) => {
+        currentStep = stepIndex;
+        const totalSteps = intakeSections.length;
+        const percent = Math.round(((stepIndex + 1) / totalSteps) * 100);
+        intakeSections.forEach((section, index) => {
+            section.hidden = index !== stepIndex;
+        });
+        stepLabel.textContent = `Step ${stepIndex + 1} of ${totalSteps}`;
+        stepPercent.textContent = `${percent}%`;
+        progressBar.style.width = `${percent}%`;
+        document.querySelector('.intake-progress__track').setAttribute('aria-valuenow', String(stepIndex + 1));
+        backButton.hidden = stepIndex === 0;
+        nextButton.hidden = stepIndex === totalSteps - 1;
+        submitButton.hidden = stepIndex !== totalSteps - 1;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    if (intakeSections.length && backButton && nextButton && submitButton) {
+        updateStep(0);
+        backButton.addEventListener('click', () => updateStep(Math.max(0, currentStep - 1)));
+        nextButton.addEventListener('click', () => {
+            const fields = intakeSections[currentStep].querySelectorAll('input, select, textarea');
+            const valid = Array.from(fields).every((field) => field.reportValidity());
+            if (valid) {
+                updateStep(Math.min(intakeSections.length - 1, currentStep + 1));
+            }
+        });
+    }
 
     if (intakeForm && saveDraftButton) {
         const collectPayload = () => {
             const data = new FormData(intakeForm);
             const payload = {};
             for (const [key, value] of data.entries()) {
-                payload[key] = value;
+                if (typeof value === 'string') {
+                    payload[key] = value;
+                }
             }
             return payload;
         };

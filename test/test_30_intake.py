@@ -1,11 +1,15 @@
 import json
+import tempfile
 from datetime import timedelta
 
+from django.core.files.base import ContentFile
+from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from intake.models import IntakeDraft, IntakeResponse, Result
+from intake.views import _generate_mbiss_result
 
 from .helpers import create_result_for_student, create_student
 
@@ -29,6 +33,21 @@ class IntakeFlowTests(TestCase):
                 'mood_energy': 3,
                 'exercise_minutes': 10,
                 'sleep_consistency': 3,
+                'mbiss_exhaustion_1': 6,
+                'mbiss_exhaustion_2': 6,
+                'mbiss_exhaustion_3': 5,
+                'mbiss_exhaustion_4': 6,
+                'mbiss_exhaustion_5': 5,
+                'mbiss_cynicism_1': 5,
+                'mbiss_cynicism_2': 5,
+                'mbiss_cynicism_3': 4,
+                'mbiss_cynicism_4': 5,
+                'mbiss_academic_efficacy_1': 3,
+                'mbiss_academic_efficacy_2': 3,
+                'mbiss_academic_efficacy_3': 4,
+                'mbiss_academic_efficacy_4': 3,
+                'mbiss_academic_efficacy_5': 4,
+                'mbiss_academic_efficacy_6': 3,
             },
         )
 
@@ -37,6 +56,47 @@ class IntakeFlowTests(TestCase):
         result = Result.objects.get(intake_response__student=self.student)
         self.assertIn(result.stress_level, {'Low', 'Moderate', 'High'})
         self.assertGreater(result.recommendations.count(), 0)
+
+    def test_result_band_is_based_on_mbiss_subscales(self):
+        intake, _ = create_result_for_student(self.student, stress_level='High')
+        for field in [
+            'mbiss_exhaustion_1', 'mbiss_exhaustion_2', 'mbiss_exhaustion_3',
+            'mbiss_exhaustion_4', 'mbiss_exhaustion_5', 'mbiss_cynicism_1',
+            'mbiss_cynicism_2', 'mbiss_cynicism_3', 'mbiss_cynicism_4',
+        ]:
+            setattr(intake, field, 1)
+        for field in [
+            'mbiss_academic_efficacy_1', 'mbiss_academic_efficacy_2',
+            'mbiss_academic_efficacy_3', 'mbiss_academic_efficacy_4',
+            'mbiss_academic_efficacy_5', 'mbiss_academic_efficacy_6',
+        ]:
+            setattr(intake, field, 7)
+        intake.save()
+
+        low_result = _generate_mbiss_result(intake)
+
+        self.assertEqual(low_result[0], 'Low')
+
+        intake.mbiss_exhaustion_1 = 7
+        intake.mbiss_exhaustion_2 = 7
+        intake.mbiss_exhaustion_3 = 7
+        intake.mbiss_exhaustion_4 = 7
+        intake.mbiss_exhaustion_5 = 7
+        intake.mbiss_cynicism_1 = 7
+        intake.mbiss_cynicism_2 = 7
+        intake.mbiss_cynicism_3 = 7
+        intake.mbiss_cynicism_4 = 7
+        intake.mbiss_academic_efficacy_1 = 1
+        intake.mbiss_academic_efficacy_2 = 1
+        intake.mbiss_academic_efficacy_3 = 1
+        intake.mbiss_academic_efficacy_4 = 1
+        intake.mbiss_academic_efficacy_5 = 1
+        intake.mbiss_academic_efficacy_6 = 1
+        intake.save()
+
+        high_result = _generate_mbiss_result(intake)
+
+        self.assertEqual(high_result[0], 'High')
 
     def test_result_page_shows_latest_result_only(self):
         create_result_for_student(self.student, stress_level='Low', days_ago=4)
@@ -67,7 +127,7 @@ class IntakeFlowTests(TestCase):
         response = self.client.get(reverse('intake:history'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'No submissions yet. Start your first intake to begin tracking your progress.')
+        self.assertContains(response, 'No check-ins yet. Start your first check-in to begin tracking your progress.')
 
     def test_intake_page_shows_general_soft_prompt_before_any_submission(self):
         self.client.login(username='intakestudent', password='StrongPass123!')
@@ -152,3 +212,26 @@ class IntakeFlowTests(TestCase):
         self.assertContains(response, 'Recovery and rest')
         self.assertContains(response, 'Focus and energy')
         self.assertContains(response, 'Choose the option that feels most accurate for the past week')
+
+    def test_student_can_download_own_supporting_file(self):
+        intake, _ = create_result_for_student(self.student, stress_level='Moderate')
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            intake.supporting_file.save('support-notes.pdf', ContentFile(b'%PDF-1.4 test'))
+            self.client.login(username='intakestudent', password='StrongPass123!')
+
+            response = self.client.get(reverse('intake:supporting_file_download', args=[intake.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-Content-Type-Options'], 'nosniff')
+        self.assertIn('attachment', response['Content-Disposition'])
+
+    def test_student_cannot_download_another_students_supporting_file(self):
+        other_student = create_student('otherstudent')
+        intake, _ = create_result_for_student(other_student, stress_level='Moderate')
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            intake.supporting_file.save('support-notes.pdf', ContentFile(b'%PDF-1.4 test'))
+            self.client.login(username='intakestudent', password='StrongPass123!')
+
+            response = self.client.get(reverse('intake:supporting_file_download', args=[intake.id]))
+
+        self.assertEqual(response.status_code, 403)

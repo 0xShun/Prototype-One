@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="banner-hero banner-hero--content">
+    <div>
+        <span class="eyebrow">Counselor home</span>
+        <h1>Student support at a glance.</h1>
+        <p>Review student check-ins and respond to requests that need attention.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="{% url 'counselor:dashboard' %}">Open student support</a>
+            <a class="btn btn-secondary" href="{% url 'about' %}">About StudentSense</a>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <div class="metric-grid">
+            <div class="metric"><span>Student accounts</span><strong>{{ student_count }}</strong></div>
+            <div class="metric"><span>Open contact requests</span><strong>{{ open_request_count }}</strong></div>
+            <div class="metric"><span>Quick guide</span><strong><a href="{% url 'how_to' %}">How to use it</a></strong></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

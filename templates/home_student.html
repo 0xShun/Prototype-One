@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="banner-hero banner-hero--content">
+    <div>
+        <span class="eyebrow">Your StudentSense home</span>
+        <h1>Make space to understand how you are doing.</h1>
+        <p>Use a quick check-in to see what may be affecting your energy, workload, and recovery.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
+            <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <div class="banner-card">
+            <span class="banner-label">Latest check-in</span>
+            {% if latest_result %}
+                <h2>{{ latest_result.stress_level }} support level</h2>
+                <p>{{ latest_result.summary }}</p>
+            {% else %}
+                <h2>Your first check-in is ready</h2>
+                <p>Answer a few questions about your recent week to receive a supportive summary.</p>
+            {% endif %}
+        </div>
+        <div class="metric-grid">
+            <div class="metric"><span>Need more context?</span><strong><a href="{% url 'about' %}">About StudentSense</a></strong></div>
+            <div class="metric"><span>Want to talk?</span><strong><a href="{% url 'counselor:contact_request' %}">Contact a counselor</a></strong></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

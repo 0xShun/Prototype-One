@@ -87,5 +87,5 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Quick guides for students and counselors.')
         self.assertContains(response, 'Create an account or sign in')
-        self.assertContains(response, 'Complete the intake form')
+        self.assertContains(response, 'Complete a check-in')
         self.assertContains(response, 'Review results and history')
