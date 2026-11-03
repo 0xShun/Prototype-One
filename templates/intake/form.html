@@ -3,8 +3,12 @@
 <div class="form-card">
     <div class="intake-intro">
         <h2>Start a check-in</h2>
-        <p>Take a brief snapshot of how the last week has felt so we can generate a supportive summary.</p>
-        <p class="form-guide">These questions are based on established research about student wellbeing, sleep, recovery, and daily routines. They help create a practical support snapshot, not a medical diagnosis.</p>
+        <p>Answer 20 brief questions about your recent school experience, social media habits, and sleep patterns.</p>
+        <p class="form-guide">This check-in is for support and reflection, not a medical diagnosis.</p>
+        <div class="likert-guide">
+            <strong>Use this scale for every question</strong>
+            <p>1 = Never / Strongly Disagree &middot; 2 = Seldom / Disagree &middot; 3 = Sometimes / Neutral &middot; 4 = Often / Agree &middot; 5 = Always / Strongly Agree</p>
+        </div>
     </div>
     {% if checkin_standard_note %}
         <div class="soft-reminder">
@@ -21,174 +25,36 @@
     <form method="post" id="intake-form" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="intake-progress" aria-live="polite">
-            <div class="intake-progress__label"><span id="intake-step-label">Step 1 of 5</span><span id="intake-step-percent">20%</span></div>
-            <div class="intake-progress__track" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-label="Check-in progress"><span id="intake-progress-bar"></span></div>
+            <div class="intake-progress__label"><span id="intake-step-label">Step 1 of 4</span><span id="intake-step-percent">25%</span></div>
+            <div class="intake-progress__track" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-label="Check-in progress"><span id="intake-progress-bar"></span></div>
         </div>
-        <section class="intake-section" data-step="1">
-            <h3>How you're managing right now</h3>
-            <p class="intake-section__copy">These questions help us understand how your week feels overall.</p>
-            <div class="intake-field">
-                {{ form.workload_hours.label_tag }}
-                {{ form.workload_hours }}
-                {% if form.workload_hours.help_text %}<div class="helptext">{{ form.workload_hours.help_text }}</div>{% endif %}
-                {{ form.workload_hours.errors }}
+        {% for title, description, fields in form.survey_blocks %}
+        <section class="intake-section" data-step="{{ forloop.counter }}">
+            <h3>{{ title }}</h3>
+            <p class="intake-section__copy">{{ description }}</p>
+            {% for field in fields %}
+            <div class="intake-field likert-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {{ field.errors }}
             </div>
-            <div class="intake-field">
-                {{ form.study_habit_score.label_tag }}
-                {{ form.study_habit_score }}
-                {% if form.study_habit_score.help_text %}<div class="helptext">{{ form.study_habit_score.help_text }}</div>{% endif %}
-                {{ form.study_habit_score.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mood_energy.label_tag }}
-                {{ form.mood_energy }}
-                {% if form.mood_energy.help_text %}<div class="helptext">{{ form.mood_energy.help_text }}</div>{% endif %}
-                {{ form.mood_energy.errors }}
-            </div>
-        </section>
-
-        <section class="intake-section" data-step="2">
-            <h3>School demands</h3>
-            <p class="intake-section__copy">Think about the shape of your classes and deadlines over the last week.</p>
-            <div class="intake-field">
-                {{ form.deadline_pressure.label_tag }}
-                {{ form.deadline_pressure }}
-                {% if form.deadline_pressure.help_text %}<div class="helptext">{{ form.deadline_pressure.help_text }}</div>{% endif %}
-                {{ form.deadline_pressure.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.class_load.label_tag }}
-                {{ form.class_load }}
-                {% if form.class_load.help_text %}<div class="helptext">{{ form.class_load.help_text }}</div>{% endif %}
-                {{ form.class_load.errors }}
-            </div>
-        </section>
-
-        <section class="intake-section" data-step="3">
-            <h3>Recovery and rest</h3>
-            <p class="intake-section__copy">These questions focus on sleep, recovery, and how often you get a chance to reset.</p>
-            <div class="intake-field">
-                {{ form.sleep_hours.label_tag }}
-                {{ form.sleep_hours }}
-                {% if form.sleep_hours.help_text %}<div class="helptext">{{ form.sleep_hours.help_text }}</div>{% endif %}
-                {{ form.sleep_hours.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.sleep_quality.label_tag }}
-                {{ form.sleep_quality }}
-                {% if form.sleep_quality.help_text %}<div class="helptext">{{ form.sleep_quality.help_text }}</div>{% endif %}
-                {{ form.sleep_quality.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.exercise_minutes.label_tag }}
-                {{ form.exercise_minutes }}
-                {% if form.exercise_minutes.help_text %}<div class="helptext">{{ form.exercise_minutes.help_text }}</div>{% endif %}
-                {{ form.exercise_minutes.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.sleep_consistency.label_tag }}
-                {{ form.sleep_consistency }}
-                {% if form.sleep_consistency.help_text %}<div class="helptext">{{ form.sleep_consistency.help_text }}</div>{% endif %}
-                {{ form.sleep_consistency.errors }}
-            </div>
-        </section>
-
-        <section class="intake-section" data-step="4">
-            <h3>Focus and energy</h3>
-            <p class="intake-section__copy">These inputs help us understand where your attention and energy are going.</p>
-            <div class="intake-field">
-                {{ form.social_media_hours.label_tag }}
-                {{ form.social_media_hours }}
-                {% if form.social_media_hours.help_text %}<div class="helptext">{{ form.social_media_hours.help_text }}</div>{% endif %}
-                {{ form.social_media_hours.errors }}
-            </div>
-        </section>
-
-        <section class="intake-section" data-step="5">
-            <h3>Burnout questions</h3>
-            <p class="intake-section__copy">Answer these items on a 1–7 scale, where higher values mean the statement applies more often.</p>
-            <div class="intake-field">
-                {{ form.mbiss_exhaustion_1.label_tag }}
-                {{ form.mbiss_exhaustion_1 }}
-                {{ form.mbiss_exhaustion_1.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_exhaustion_2.label_tag }}
-                {{ form.mbiss_exhaustion_2 }}
-                {{ form.mbiss_exhaustion_2.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_exhaustion_3.label_tag }}
-                {{ form.mbiss_exhaustion_3 }}
-                {{ form.mbiss_exhaustion_3.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_exhaustion_4.label_tag }}
-                {{ form.mbiss_exhaustion_4 }}
-                {{ form.mbiss_exhaustion_4.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_exhaustion_5.label_tag }}
-                {{ form.mbiss_exhaustion_5 }}
-                {{ form.mbiss_exhaustion_5.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_cynicism_1.label_tag }}
-                {{ form.mbiss_cynicism_1 }}
-                {{ form.mbiss_cynicism_1.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_cynicism_2.label_tag }}
-                {{ form.mbiss_cynicism_2 }}
-                {{ form.mbiss_cynicism_2.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_cynicism_3.label_tag }}
-                {{ form.mbiss_cynicism_3 }}
-                {{ form.mbiss_cynicism_3.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_cynicism_4.label_tag }}
-                {{ form.mbiss_cynicism_4 }}
-                {{ form.mbiss_cynicism_4.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_1.label_tag }}
-                {{ form.mbiss_academic_efficacy_1 }}
-                {{ form.mbiss_academic_efficacy_1.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_2.label_tag }}
-                {{ form.mbiss_academic_efficacy_2 }}
-                {{ form.mbiss_academic_efficacy_2.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_3.label_tag }}
-                {{ form.mbiss_academic_efficacy_3 }}
-                {{ form.mbiss_academic_efficacy_3.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_4.label_tag }}
-                {{ form.mbiss_academic_efficacy_4 }}
-                {{ form.mbiss_academic_efficacy_4.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_5.label_tag }}
-                {{ form.mbiss_academic_efficacy_5 }}
-                {{ form.mbiss_academic_efficacy_5.errors }}
-            </div>
-            <div class="intake-field">
-                {{ form.mbiss_academic_efficacy_6.label_tag }}
-                {{ form.mbiss_academic_efficacy_6 }}
-                {{ form.mbiss_academic_efficacy_6.errors }}
-            </div>
+            {% endfor %}
+            {% if forloop.last %}
             <div class="intake-field">
                 {{ form.supporting_file.label_tag }}
                 {{ form.supporting_file }}
                 <div class="helptext">Optional. Upload a PDF, DOC, DOCX, TXT, JPG, or PNG file up to 50 MB if it will help explain your check-in.</div>
                 {{ form.supporting_file.errors }}
             </div>
+            <div class="intake-field">
+                {{ form.presenting_concern.label_tag }}
+                {{ form.presenting_concern }}
+                <div class="helptext">This note is shared with counselors who can access your student record.</div>
+                {{ form.presenting_concern.errors }}
+            </div>
+            {% endif %}
         </section>
+        {% endfor %}
         <div class="form-actions">
             <button class="btn btn-secondary" type="button" id="save-draft-btn">Save draft</button>
             <button class="btn btn-secondary" type="button" id="intake-back-btn">Back</button>

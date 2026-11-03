@@ -9,19 +9,20 @@
             <p>{{ result.summary }}</p>
         </div>
         <div class="result-details">
-            <h3>Burnout question scores</h3>
-            <p>These scores are based on your MBI-SS responses. They are support information, not a diagnosis.</p>
+            <h3>Check-in area scores</h3>
+            <p>These scores summarize your answers on the 1–5 scale. They are support information, not a diagnosis.</p>
             <ul class="list-stack">
-                <li>Exhaustion: {{ result.intake_response.mbiss_exhaustion_score }}</li>
-                <li>Cynicism: {{ result.intake_response.mbiss_cynicism_score }}</li>
-                <li>Academic efficacy: {{ result.intake_response.mbiss_academic_efficacy_score }}</li>
+                <li>Academic burnout: {{ result.intake_response.academic_burnout_score }}/25</li>
+                <li>Academic stress and workload: {{ result.intake_response.academic_stress_score }}/25</li>
+                <li>Social media usage: {{ result.intake_response.social_media_score }}/30</li>
+                <li>Sleep patterns and habits: {{ result.intake_response.sleep_patterns_score }}/20</li>
             </ul>
         </div>
         <div class="result-model-panel">
             <h3>Predictive support signal</h3>
             {% if model_prediction %}
                 <span class="result-badge">{{ model_prediction.label }}</span>
-                <p>This is an additional model-based estimate from your routine answers. It does not replace your MBI-SS result.</p>
+                <p>This is an additional model-based estimate from your answers. It does not replace your check-in result.</p>
                 {% if model_prediction.probabilities %}
                     <ul class="list-stack">
                         {% for label, probability in model_prediction.probabilities.items %}
@@ -40,7 +41,7 @@
                 <p class="helptext">These factors describe how the model reached its estimate. They do not prove that any factor caused burnout.</p>
             {% else %}
                 <p class="result-model-panel__pending">A predictive support signal will appear here when enough approved data and a trained model are available.</p>
-                <p class="helptext">Your current MBI-SS result above remains the direct measure for this check-in.</p>
+                <p class="helptext">Your current check-in result above is the direct support signal for this submission.</p>
             {% endif %}
         </div>
         <div>

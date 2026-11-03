@@ -48,22 +48,15 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.page.locator('#nav-toggle').click()
         self.assertTrue(self.page.get_by_role('navigation').first.is_visible())
 
-    def test_public_banner_pages_render_on_mobile(self):
+    def test_public_home_page_renders_on_mobile(self):
         self.page.goto(f'{self.live_server_url}/')
         self.assertIn('Understand your stress before it becomes overwhelming.', self.page.locator('body').inner_text())
         self.assertTrue(self.page.locator('#nav-toggle').is_visible())
         self.open_mobile_menu()
-        self.assertTrue(self.page.get_by_role('link', name='About').first.is_visible())
-        self.assertTrue(self.page.get_by_role('link', name='How To').first.is_visible())
-
-        self.page.get_by_role('link', name='About').first.click()
-        self.assertIn('A simple platform for student stress check-ins.', self.page.locator('body').inner_text())
-        self.assertIn('References', self.page.locator('body').inner_text())
-        self.assertIn('Study habits, skills, and attitudes: The third pillar supporting collegiate academic performance', self.page.locator('body').inner_text())
-
-        self.open_mobile_menu()
-        self.page.get_by_role('link', name='How To').first.click()
-        self.assertIn('Quick guides for students and counselors.', self.page.locator('body').inner_text())
+        self.assertFalse(self.page.get_by_role('link', name='About').count())
+        self.assertFalse(self.page.get_by_role('link', name='How To').count())
+        self.assertIn('About the platform', self.page.locator('body').inner_text())
+        self.assertIn('How to use it', self.page.locator('body').inner_text())
 
     def test_student_browser_flow_from_register_to_logout(self):
         username = 'browserstudent'
@@ -80,42 +73,23 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.page.goto(f'{self.live_server_url}/intake/new/')
         reminder_text = self.page.locator('.soft-reminder').first.inner_text()
         self.assertIn('We recommend checking in once a week', reminder_text)
-        self.assertIn('These questions are based on established research', self.page.locator('body').inner_text())
+        self.assertIn('Use this scale for every question', self.page.locator('body').inner_text())
         self.assertNotIn('Research behind these questions', self.page.locator('body').inner_text())
 
-        self.page.locator('input[name="workload_hours"]').fill('11')
-        self.page.locator('input[name="study_habit_score"]').fill('3')
-        self.page.locator('input[name="mood_energy"]').fill('3')
+        for index in range(1, 6):
+            self.page.locator(f'input[name="q{index}"]').nth(4).check()
         self.page.get_by_role('button', name='Next').click()
 
-        self.page.locator('input[name="deadline_pressure"]').fill('9')
-        self.page.locator('input[name="class_load"]').fill('8')
+        for index in range(6, 11):
+            self.page.locator(f'input[name="q{index}"]').nth(4).check()
         self.page.get_by_role('button', name='Next').click()
 
-        self.page.locator('input[name="sleep_hours"]').fill('4')
-        self.page.locator('select[name="sleep_quality"]').select_option('Poor')
-        self.page.locator('input[name="exercise_minutes"]').fill('10')
-        self.page.locator('input[name="sleep_consistency"]').fill('3')
+        for index in range(11, 17):
+            self.page.locator(f'input[name="q{index}"]').nth(4).check()
         self.page.get_by_role('button', name='Next').click()
 
-        self.page.locator('input[name="social_media_hours"]').fill('5')
-        self.page.get_by_role('button', name='Next').click()
-
-        self.page.locator('input[name="mbiss_exhaustion_1"]').fill('6')
-        self.page.locator('input[name="mbiss_exhaustion_2"]').fill('6')
-        self.page.locator('input[name="mbiss_exhaustion_3"]').fill('5')
-        self.page.locator('input[name="mbiss_exhaustion_4"]').fill('6')
-        self.page.locator('input[name="mbiss_exhaustion_5"]').fill('5')
-        self.page.locator('input[name="mbiss_cynicism_1"]').fill('5')
-        self.page.locator('input[name="mbiss_cynicism_2"]').fill('5')
-        self.page.locator('input[name="mbiss_cynicism_3"]').fill('4')
-        self.page.locator('input[name="mbiss_cynicism_4"]').fill('5')
-        self.page.locator('input[name="mbiss_academic_efficacy_1"]').fill('3')
-        self.page.locator('input[name="mbiss_academic_efficacy_2"]').fill('3')
-        self.page.locator('input[name="mbiss_academic_efficacy_3"]').fill('4')
-        self.page.locator('input[name="mbiss_academic_efficacy_4"]').fill('3')
-        self.page.locator('input[name="mbiss_academic_efficacy_5"]').fill('4')
-        self.page.locator('input[name="mbiss_academic_efficacy_6"]').fill('3')
+        for index in range(17, 21):
+            self.page.locator(f'input[name="q{index}"]').nth(4).check()
         self.page.get_by_role('button', name='Submit').click()
         self.page.wait_for_url(f'{self.live_server_url}/intake/result/')
         self.assertIn('Your latest result', self.page.locator('body').inner_text())

@@ -2,9 +2,21 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from datetime import datetime, time, timedelta
+from io import StringIO
 
+from django.core.management import call_command
 from counselor.models import CounselorNote
-from counselor.models import ContactMessage
+from counselor.models import (
+    AppointmentBooking,
+    CounselorAvailability,
+    ContactMessage,
+    CounselorDigestDelivery,
+    CounselorUnavailableTime,
+    StudentContactRequest,
+    TeacherReferral,
+)
+from accounts.models import StudentProfile, UserNotification
 from intake.models import Result
 
 from .helpers import create_counselor, create_result_for_student, create_student
@@ -352,3 +364,159 @@ class CounselorAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'chat-room__messages--empty')
+
+    def make_approved_teacher(self, username='schoolteacher'):
+        teacher = get_user_model().objects.create_user(
+            username=username,
+            email=f'{username}@example.com',
+            password='StrongPass123!',
+            first_name='School',
+            last_name='Teacher',
+        )
+        StudentProfile.objects.create(
+            user=teacher,
+            program='Guidance Office',
+            phone_number='+639171234567',
+            is_teacher=True,
+            is_teacher_approved=True,
+        )
+        return teacher
+
+    def test_teacher_referral_notifies_student_without_exposing_reason(self):
+        teacher = self.make_approved_teacher()
+        referral_reason = 'Student shared a private concern about family pressure.'
+        self.client.login(username=teacher.username, password='StrongPass123!')
+
+        response = self.client.post(reverse('counselor:teacher_referral'), {
+            'student': self.high_student.id,
+            'reason': referral_reason,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        referral = TeacherReferral.objects.get(student=self.high_student, teacher=teacher)
+        student_notification = UserNotification.objects.get(recipient=self.high_student)
+        counselor_notification = UserNotification.objects.get(recipient=self.counselor)
+        self.assertEqual(referral.reason, referral_reason)
+        self.assertNotIn(referral_reason, student_notification.body)
+        self.assertIn('referred', student_notification.body)
+        self.assertNotIn(referral_reason, counselor_notification.body)
+
+    def test_teacher_cannot_open_counselor_referral_queue(self):
+        teacher = self.make_approved_teacher()
+        self.client.login(username=teacher.username, password='StrongPass123!')
+
+        response = self.client.get(reverse('counselor:dashboard'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_student_directory_lists_only_approved_teacher_contact(self):
+        teacher = self.make_approved_teacher()
+        pending = get_user_model().objects.create_user(username='pendingteacher', password='StrongPass123!')
+        StudentProfile.objects.create(user=pending, is_teacher=True, phone_number='+639170000000')
+        self.client.login(username='highstudent', password='StrongPass123!')
+
+        response = self.client.get(reverse('counselor:teacher_directory'))
+
+        self.assertContains(response, teacher.studentprofile.phone_number)
+        self.assertNotContains(response, pending.studentprofile.phone_number)
+        self.assertContains(response, f'tel:{teacher.studentprofile.phone_number}')
+
+    def test_approved_teacher_can_open_counselor_directory(self):
+        teacher = self.make_approved_teacher()
+        self.client.login(username=teacher.username, password='StrongPass123!')
+
+        response = self.client.get(reverse('counselor:teacher_directory'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Counselor contacts')
+        self.assertContains(response, self.counselor.username)
+
+    def test_urgent_request_creates_priority_and_notifies_all_counselors(self):
+        second_counselor = create_counselor('urgentcounselor')
+        self.client.login(username='highstudent', password='StrongPass123!')
+
+        response = self.client.post(reverse('counselor:urgent_help'), {'message': 'I need urgent help today.'})
+
+        self.assertEqual(response.status_code, 302)
+        urgent_request = self.high_student.contact_requests.get()
+        self.assertEqual(urgent_request.priority, StudentContactRequest.Priority.URGENT)
+        self.assertTrue(UserNotification.objects.filter(recipient=self.counselor, kind=UserNotification.Kind.URGENT_HELP).exists())
+        self.assertTrue(UserNotification.objects.filter(recipient=second_counselor, kind=UserNotification.Kind.URGENT_HELP).exists())
+        self.assertTrue(UserNotification.objects.filter(recipient=self.high_student, kind=UserNotification.Kind.URGENT_HELP).exists())
+
+    def test_student_books_whole_slot_and_cancellation_releases_it(self):
+        appointment_date = timezone.localdate() + timedelta(days=2)
+        rule = CounselorAvailability.objects.create(
+            counselor=self.counselor,
+            weekday=appointment_date.weekday(),
+            start_time=time(13, 0),
+            end_time=time(14, 0),
+            effective_from=timezone.localdate(),
+        )
+        slot_start = timezone.make_aware(datetime.combine(appointment_date, time(13, 0)))
+        self.client.login(username='highstudent', password='StrongPass123!')
+
+        calendar_response = self.client.get(reverse('counselor:appointment_calendar'))
+        self.assertContains(calendar_response, '1:00 PM to 2:00 PM')
+        booking_response = self.client.post(reverse('counselor:book_appointment'), {
+            'availability_id': rule.id,
+            'starts_at': slot_start.isoformat(),
+        })
+        self.assertEqual(booking_response.status_code, 302)
+        booking = AppointmentBooking.objects.get(student=self.high_student)
+        self.assertEqual(booking.ends_at - booking.starts_at, timedelta(hours=1))
+
+        self.client.login(username='modstudent', password='StrongPass123!')
+        taken_response = self.client.post(reverse('counselor:book_appointment'), {
+            'availability_id': rule.id,
+            'starts_at': slot_start.isoformat(),
+        })
+        self.assertEqual(taken_response.status_code, 302)
+        self.assertFalse(AppointmentBooking.objects.filter(student=self.moderate_student).exists())
+
+        self.client.login(username='highstudent', password='StrongPass123!')
+        cancel_response = self.client.post(reverse('counselor:cancel_appointment', args=[booking.id]))
+        self.assertEqual(cancel_response.status_code, 302)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, AppointmentBooking.Status.CANCELLED)
+
+        self.client.login(username='modstudent', password='StrongPass123!')
+        retry_response = self.client.post(reverse('counselor:book_appointment'), {
+            'availability_id': rule.id,
+            'starts_at': slot_start.isoformat(),
+        })
+        self.assertEqual(retry_response.status_code, 302)
+        self.assertTrue(AppointmentBooking.objects.filter(student=self.moderate_student, status=AppointmentBooking.Status.BOOKED).exists())
+
+    def test_same_day_appointment_is_not_bookable(self):
+        appointment_date = timezone.localdate()
+        rule = CounselorAvailability.objects.create(
+            counselor=self.counselor,
+            weekday=appointment_date.weekday(),
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            effective_from=appointment_date,
+        )
+        slot_start = timezone.make_aware(datetime.combine(appointment_date, time(16, 0)))
+        self.client.login(username='highstudent', password='StrongPass123!')
+
+        response = self.client.post(reverse('counselor:book_appointment'), {
+            'availability_id': rule.id,
+            'starts_at': slot_start.isoformat(),
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(AppointmentBooking.objects.filter(student=self.high_student).exists())
+
+    def test_weekly_elevated_digest_sends_once_per_counselor_and_week(self):
+        output = StringIO()
+        call_command('send_weekly_elevated_digest', stdout=output)
+        call_command('send_weekly_elevated_digest', stdout=output)
+
+        self.assertEqual(CounselorDigestDelivery.objects.filter(counselor=self.counselor).count(), 1)
+        digest = UserNotification.objects.filter(
+            recipient=self.counselor,
+            kind=UserNotification.Kind.WEEKLY_DIGEST,
+        )
+        self.assertEqual(digest.count(), 1)
+        self.assertIn('elevated check-in result last week', digest.first().body)

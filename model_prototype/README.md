@@ -10,6 +10,15 @@ Run it from the repository root:
 .venv/bin/python model_prototype/train_public_prototype.py
 ```
 
+Run the settings experiments and generate the reports with:
+
+```bash
+.venv/bin/python model_prototype/run_prototype_experiments.py
+.venv/bin/python model_prototype/generate_model_reports.py
+```
+
+The PDF reports are written to `model_prototype/reports/`.
+
 Outputs are written under `data/public/student_burnout_analysis2026/prototype_output/` and are intentionally ignored by Git.
 
 The first local run used 2,000 rows, held out 20% for testing, and produced:
@@ -28,3 +37,17 @@ Limitations:
 - Its columns do not exactly match the StudentSense custom intake.
 - The resulting artifact must not be deployed or used to generate student results.
 - The final model requires paired custom StudentSense inputs and approved MBI-SS-derived targets.
+
+## Independent Zenodo Stress Prototype
+
+The separate `train_zenodo_stress_prototype.py` script uses the CC BY 4.0 Zenodo dataset under `data/public/zenodo_university_stress_18706837/`. It predicts that dataset's daily `STRESS_SCORE` using aggregated wearable/sleep measurements and questionnaire anxiety. It excludes the questionnaire's direct `stress` field to avoid target leakage and splits by participant.
+
+Run it with:
+
+```bash
+.venv/bin/python model_prototype/train_zenodo_stress_prototype.py
+```
+
+Its artifacts are separate from the burnout prototype and are not compatible with StudentSense's MBI-SS result or custom-input model.
+
+The first run used 1,436 valid daily stress rows from 32 participants, with a participant-level held-out test split. It produced MAE approximately `6.17`, RMSE approximately `9.02`, and R-squared approximately `-0.195`. The negative R-squared means this small auxiliary model did not generalize well to unseen participants; it is a pipeline demonstration, not a useful deployed predictor.

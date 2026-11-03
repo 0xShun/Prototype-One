@@ -13,8 +13,8 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'Understand your stress before it becomes overwhelming.')
         self.assertContains(response, 'Create an account')
         self.assertContains(response, 'Sign in')
-        self.assertContains(response, 'About')
-        self.assertContains(response, 'How To')
+        self.assertContains(response, 'About the platform')
+        self.assertContains(response, 'How to use it')
 
     def test_base_template_includes_pwa_support(self):
         response = self.client.get(reverse('home'))
@@ -70,22 +70,3 @@ class PublicPageTests(TestCase):
         response = self.client.get(reverse('home'))
 
         self.assertContains(response, 'app-shell-header')
-
-    def test_about_page_explains_the_platform(self):
-        response = self.client.get(reverse('about'))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'A simple platform for student stress check-ins.')
-        self.assertContains(response, 'For students')
-        self.assertContains(response, 'For counselors')
-        self.assertContains(response, 'References')
-        self.assertContains(response, 'Study habits, skills, and attitudes: The third pillar supporting collegiate academic performance')
-
-    def test_how_to_page_explains_the_user_flow(self):
-        response = self.client.get(reverse('how_to'))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Quick guides for students and counselors.')
-        self.assertContains(response, 'Create an account or sign in')
-        self.assertContains(response, 'Complete a check-in')
-        self.assertContains(response, 'Review results and history')

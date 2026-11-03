@@ -10,14 +10,8 @@ class QueryBudgetTests(TestCase):
     def test_public_pages_are_lightweight(self):
         with CaptureQueriesContext(connection) as home_queries:
             self.client.get(reverse('home'))
-        with CaptureQueriesContext(connection) as about_queries:
-            self.client.get(reverse('about'))
-        with CaptureQueriesContext(connection) as how_to_queries:
-            self.client.get(reverse('how_to'))
 
         self.assertLessEqual(len(home_queries), 1)
-        self.assertLessEqual(len(about_queries), 1)
-        self.assertLessEqual(len(how_to_queries), 1)
 
     def test_history_page_uses_a_reasonable_query_budget(self):
         student = create_student('perfstudent')

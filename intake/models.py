@@ -40,57 +40,69 @@ class IntakeDraft(models.Model):
 
 class IntakeResponse(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='intakes')
-    workload_hours = models.PositiveIntegerField()
-    sleep_hours = models.PositiveIntegerField()
-    sleep_quality = models.CharField(max_length=50)
-    study_habit_score = models.PositiveIntegerField()
-    social_media_hours = models.PositiveIntegerField()
+    q1 = models.PositiveSmallIntegerField(default=3)
+    q2 = models.PositiveSmallIntegerField(default=3)
+    q3 = models.PositiveSmallIntegerField(default=3)
+    q4 = models.PositiveSmallIntegerField(default=3)
+    q5 = models.PositiveSmallIntegerField(default=3)
+    q6 = models.PositiveSmallIntegerField(default=3)
+    q7 = models.PositiveSmallIntegerField(default=3)
+    q8 = models.PositiveSmallIntegerField(default=3)
+    q9 = models.PositiveSmallIntegerField(default=3)
+    q10 = models.PositiveSmallIntegerField(default=3)
+    q11 = models.PositiveSmallIntegerField(default=3)
+    q12 = models.PositiveSmallIntegerField(default=3)
+    q13 = models.PositiveSmallIntegerField(default=3)
+    q14 = models.PositiveSmallIntegerField(default=3)
+    q15 = models.PositiveSmallIntegerField(default=3)
+    q16 = models.PositiveSmallIntegerField(default=3)
+    q17 = models.PositiveSmallIntegerField(default=3)
+    q18 = models.PositiveSmallIntegerField(default=3)
+    q19 = models.PositiveSmallIntegerField(default=3)
+    q20 = models.PositiveSmallIntegerField(default=3)
+    workload_hours = models.PositiveIntegerField(default=0)
+    sleep_hours = models.PositiveIntegerField(default=0)
+    sleep_quality = models.CharField(max_length=50, default='')
+    study_habit_score = models.PositiveIntegerField(default=3)
+    social_media_hours = models.PositiveIntegerField(default=0)
     deadline_pressure = models.PositiveIntegerField(default=5)
     class_load = models.PositiveIntegerField(default=5)
     mood_energy = models.PositiveIntegerField(default=5)
     exercise_minutes = models.PositiveIntegerField(default=30)
     sleep_consistency = models.PositiveIntegerField(default=5)
-    mbiss_exhaustion_1 = models.PositiveSmallIntegerField(default=4)
-    mbiss_exhaustion_2 = models.PositiveSmallIntegerField(default=4)
-    mbiss_exhaustion_3 = models.PositiveSmallIntegerField(default=4)
-    mbiss_exhaustion_4 = models.PositiveSmallIntegerField(default=4)
-    mbiss_exhaustion_5 = models.PositiveSmallIntegerField(default=4)
-    mbiss_cynicism_1 = models.PositiveSmallIntegerField(default=4)
-    mbiss_cynicism_2 = models.PositiveSmallIntegerField(default=4)
-    mbiss_cynicism_3 = models.PositiveSmallIntegerField(default=4)
-    mbiss_cynicism_4 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_1 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_2 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_3 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_4 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_5 = models.PositiveSmallIntegerField(default=4)
-    mbiss_academic_efficacy_6 = models.PositiveSmallIntegerField(default=4)
     supporting_file = models.FileField(
         upload_to='student_uploads/%Y/%m/%d/',
         blank=True,
         validators=[validate_supporting_file],
     )
+    presenting_concern = models.TextField(blank=True)
     date_submitted = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Intake for {self.student.username}"
 
-    @property
-    def mbiss_exhaustion_score(self):
-        return sum(getattr(self, f'mbiss_exhaustion_{i}') for i in range(1, 6))
+    def survey_block_score(self, start, end):
+        return sum(getattr(self, f'q{i}') for i in range(start, end + 1))
 
     @property
-    def mbiss_cynicism_score(self):
-        return sum(getattr(self, f'mbiss_cynicism_{i}') for i in range(1, 5))
+    def academic_burnout_score(self):
+        return self.survey_block_score(1, 5)
 
     @property
-    def mbiss_academic_efficacy_score(self):
-        return sum(getattr(self, f'mbiss_academic_efficacy_{i}') for i in range(1, 7))
+    def academic_stress_score(self):
+        return self.survey_block_score(6, 10)
 
     @property
-    def mbiss_total_score(self):
-        return self.mbiss_exhaustion_score + self.mbiss_cynicism_score + self.mbiss_academic_efficacy_score
+    def social_media_score(self):
+        return self.survey_block_score(11, 16)
 
+    @property
+    def sleep_patterns_score(self):
+        return self.survey_block_score(17, 20)
+
+    @property
+    def survey_total_score(self):
+        return self.survey_block_score(1, 20)
 
 class Result(models.Model):
     intake_response = models.OneToOneField(IntakeResponse, on_delete=models.CASCADE, related_name='result')

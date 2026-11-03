@@ -21,6 +21,7 @@ db.sqlite3
 staticfiles/
 media/
 data/public/
+model_prototype/reports/
 
 # OS/editor files
 .DS_Store

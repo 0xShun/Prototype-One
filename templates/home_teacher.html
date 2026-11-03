@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="banner-hero banner-hero--content">
+    <div>
+        <span class="eyebrow">Teacher home</span>
+        <h1>Connect students with support.</h1>
+        <p>Send a private referral to the counseling team or open the contact directory when a student needs someone to talk to.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="{% url 'counselor:teacher_referral' %}">Refer a student</a>
+            <a class="btn btn-secondary" href="{% url 'counselor:teacher_directory' %}">Counselor contact directory</a>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <div class="metric-grid">
+            <div class="metric"><span>Your referrals</span><strong>{{ referral_count }}</strong></div>
+            <div class="metric"><span>Account status</span><strong>Approved teacher</strong></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

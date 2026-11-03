@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Refer a student</h2>
+    <p>The referral reason is visible to counselors only. The student receives a notice that a teacher referred them to support.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary" type="submit">Send referral</button>
+    </form>
+    <h3>Your referrals</h3>
+    {% if referrals %}
+        <div class="results-grid">
+            {% for referral in referrals %}
+                <article class="result-card">
+                    <strong>{{ referral.student.get_full_name|default:referral.student.username }}</strong>
+                    <span class="student-meta">{{ referral.status }} · {{ referral.created_at|date:"M d, Y" }}</span>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You have not sent any referrals.</p>
+    {% endif %}
+</div>
+{% endblock %}

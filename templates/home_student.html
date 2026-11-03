@@ -8,6 +8,8 @@
         <div class="hero-actions">
             <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
             <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
+            <a class="btn btn-secondary" href="{% url 'counselor:appointment_calendar' %}">Book an appointment</a>
+            <a class="btn btn-secondary" href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
         </div>
     </div>
     <div class="hero-panel">
@@ -22,7 +24,7 @@
             {% endif %}
         </div>
         <div class="metric-grid">
-            <div class="metric"><span>Need more context?</span><strong><a href="{% url 'about' %}">About StudentSense</a></strong></div>
+            <div class="metric"><span>Check in regularly</span><strong>Track your progress</strong></div>
             <div class="metric"><span>Want to talk?</span><strong><a href="{% url 'counselor:contact_request' %}">Contact a counselor</a></strong></div>
         </div>
     </div>

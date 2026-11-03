@@ -23,6 +23,14 @@ def home(request):
             'dashboard_url_name': 'counselor:dashboard',
         })
 
+    if profile and profile.is_teacher:
+        if not profile.is_teacher_approved:
+            return render(request, 'accounts/teacher_pending.html')
+        from counselor.models import TeacherReferral
+        return render(request, 'home_teacher.html', {
+            'referral_count': TeacherReferral.objects.filter(teacher=request.user).count(),
+        })
+
     latest_result = (
         Result.objects.filter(intake_response__student=request.user)
         .order_by('-created_at')

@@ -7,14 +7,10 @@ from .models import IntakeResponse, Result
 class IntakeResponseAdmin(admin.ModelAdmin):
     list_display = (
         'student',
-        'workload_hours',
-        'sleep_hours',
-        'sleep_quality',
-        'deadline_pressure',
-        'class_load',
-        'mood_energy',
-        'exercise_minutes',
-        'sleep_consistency',
+        'academic_burnout_score',
+        'academic_stress_score',
+        'social_media_score',
+        'sleep_patterns_score',
         'date_submitted',
     )
 

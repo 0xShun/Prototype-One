@@ -83,7 +83,7 @@ This account is already marked as a counselor in the database, so it can access 
 If you are demoing the app on Windows, this order works well:
 
 1. Open the home page banner
-2. Open About and How To
+2. Read the About and How To sections on the home page
 3. Register a student account
 4. Log in as the student
 5. Complete the intake form
@@ -101,4 +101,3 @@ If you are demoing the app on Windows, this order works well:
 - The intake form includes guidance for each field.
 - The app stores every submission as a new history entry.
 - Counselors only see students with Moderate or High stress.
-

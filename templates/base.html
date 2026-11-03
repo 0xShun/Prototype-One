@@ -45,8 +45,21 @@
                     <a href="{% url 'home' %}">Home</a>
                     <a href="{% url 'counselor:dashboard' %}">Student support</a>
                     <a href="{% url 'counselor:archive' %}">Archived results</a>
-                    <a href="{% url 'how_to' %}">How to use it</a>
-                    <a href="{% url 'about' %}">About StudentSense</a>
+                    <a href="{% url 'notifications' %}">Notifications</a>
+                    <a href="{% url 'notification_settings' %}">Notification settings</a>
+                    <a href="{% url 'counselor:availability' %}">Appointments and availability</a>
+                    <form class="logout-form" method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="nav-button" type="submit">Logout</button>
+                    </form>
+                {% elif user.studentprofile.is_teacher %}
+                    <a href="{% url 'home' %}">Home</a>
+                    {% if user.studentprofile.is_teacher_approved %}
+                        <a href="{% url 'counselor:teacher_referral' %}">Refer a student</a>
+                        <a href="{% url 'counselor:teacher_directory' %}">Counselor contacts</a>
+                    {% endif %}
+                    <a href="{% url 'notifications' %}">Notifications</a>
+                    <a href="{% url 'notification_settings' %}">Notification settings</a>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
@@ -57,18 +70,21 @@
                     <a href="{% url 'intake:result' %}">Latest result</a>
                     <a href="{% url 'intake:history' %}">My progress</a>
                     <a href="{% url 'counselor:contact_request' %}">Contact support</a>
-                    <a href="{% url 'how_to' %}">How to use it</a>
-                    <a href="{% url 'about' %}">About StudentSense</a>
+                    <a href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
+                    <a href="{% url 'counselor:appointment_calendar' %}">Book an appointment</a>
+                    <a href="{% url 'counselor:student_appointments' %}">My appointments</a>
+                    <a href="{% url 'counselor:teacher_directory' %}">Teacher contacts</a>
+                    <a href="{% url 'notifications' %}">Notifications</a>
+                    <a href="{% url 'notification_settings' %}">Notification settings</a>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
                     </form>
                 {% endif %}
             {% else %}
-                <a href="{% url 'about' %}">About</a>
-                <a href="{% url 'how_to' %}">How To</a>
                 <a href="{% url 'login' %}">Login</a>
                 <a href="{% url 'register' %}">Register</a>
+                <a href="{% url 'register_teacher' %}">Teacher sign-up</a>
             {% endif %}
         </div>
     </nav>

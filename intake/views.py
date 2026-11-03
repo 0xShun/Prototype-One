@@ -2,45 +2,45 @@ import json
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.http import FileResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 
 from recommendations.models import Recommendation
+from counselor.models import ContactMessage, StudentContactRequest
 
 from .forms import IntakeResponseForm
 from .models import IntakeDraft, IntakeResponse, Result
 
 
-def _mbiss_band(score, item_count, reversed_concern=False):
-    """Assign a provisional theoretical-range band, not a clinical cutoff."""
+def _survey_band(score, item_count):
+    """Assign a provisional survey band, not a clinical cutoff."""
     minimum = item_count
-    maximum = item_count * 7
+    maximum = item_count * 5
     third = (maximum - minimum) / 3
-    if reversed_concern:
-        concern_score = maximum + minimum - score
-    else:
-        concern_score = score
-    if concern_score <= minimum + third:
+    if score <= minimum + third:
         return 'Low'
-    if concern_score <= minimum + (third * 2):
+    if score <= minimum + (third * 2):
         return 'Moderate'
     return 'High'
 
 
-def _generate_mbiss_result(intake):
-    exhaustion = intake.mbiss_exhaustion_score
-    cynicism = intake.mbiss_cynicism_score
-    academic_efficacy = intake.mbiss_academic_efficacy_score
+def _generate_survey_result(intake):
     bands = {
-        'exhaustion': _mbiss_band(exhaustion, 5),
-        'cynicism': _mbiss_band(cynicism, 4),
-        'academic efficacy': _mbiss_band(academic_efficacy, 6, reversed_concern=True),
+        'academic burnout': _survey_band(intake.academic_burnout_score, 5),
+        'academic stress and workload': _survey_band(intake.academic_stress_score, 5),
+        'social media usage': _survey_band(intake.social_media_score, 6),
+        'sleep patterns and habits': _survey_band(intake.sleep_patterns_score, 4),
     }
     high_concern = [name for name, band in bands.items() if band == 'High']
     moderate_concern = [name for name, band in bands.items() if band == 'Moderate']
 
-    if bands['exhaustion'] == 'High' and bands['cynicism'] in {'Moderate', 'High'}:
+    if len(high_concern) >= 2 or (
+        bands['academic burnout'] == 'High'
+        and bands['academic stress and workload'] in {'Moderate', 'High'}
+    ):
         stress_level = 'High'
     elif high_concern or len(moderate_concern) >= 2:
         stress_level = 'Moderate'
@@ -49,12 +49,22 @@ def _generate_mbiss_result(intake):
 
     factors = [name for name, band in bands.items() if band in {'Moderate', 'High'}]
     if stress_level == 'High':
-        summary = 'Your MBI-SS responses show elevated exhaustion and academic burnout-related concern.'
+        summary = 'Your responses show elevated concern across multiple areas of academic wellbeing.'
     elif stress_level == 'Moderate':
-        summary = 'Your MBI-SS responses show some areas of academic burnout-related concern worth noticing.'
+        summary = 'Your responses show some areas of academic wellbeing worth noticing.'
     else:
-        summary = 'Your MBI-SS responses do not show elevated concern across the three measured areas.'
+        summary = 'Your responses do not show elevated concern across the four measured areas.'
     return stress_level, factors, summary, bands
+
+
+def _recommendations_for_survey(factors):
+    guidance = {
+        'academic burnout': 'Try a short breathing exercise, plan brief rest breaks, and talk with student support if exhaustion continues.',
+        'academic stress and workload': 'Break schoolwork into smaller steps, prioritize deadlines, and ask a teacher or counselor for help with workload pressure.',
+        'social media usage': 'Set a small notification-free study window and protect your sleep from late-night scrolling.',
+        'sleep patterns and habits': 'Try a consistent wind-down routine and keep phones and computers away from your bed before sleep.',
+    }
+    return [(factor, guidance[factor]) for factor in factors if factor in guidance]
 
 
 def _checkin_prompt_for(user):
@@ -105,18 +115,50 @@ def create_intake(request):
             intake.student = request.user
             intake.save()
 
-            stress_level, factors, summary, bands = _generate_mbiss_result(intake)
+            stress_level, factors, summary, bands = _generate_survey_result(intake)
             result = Result.objects.create(
                 intake_response=intake,
                 stress_level=stress_level,
                 factors=json.dumps(factors),
                 summary=summary,
             )
-            for factor in factors:
+            for factor, tip_text in _recommendations_for_survey(factors):
                 Recommendation.objects.create(
                     result=result,
                     factor_name=factor,
-                    tip_text='A small adjustment today can make the next week feel more manageable.',
+                    tip_text=tip_text,
+                )
+            if stress_level == 'High':
+                from accounts.notifications import notify_user, notify_users
+                from accounts.models import UserNotification
+                support_note = (
+                    'StudentSense flagged this check-in for prompt counselor review based on its provisional survey support band. '
+                    'This is a screening prompt, not a diagnosis or emergency assessment.'
+                )
+                urgent_case = StudentContactRequest.objects.create(
+                    student=request.user,
+                    message=support_note,
+                    priority=StudentContactRequest.Priority.URGENT,
+                    initiated_by_system=True,
+                )
+                ContactMessage.objects.create(
+                    thread=urgent_case,
+                    sender=ContactMessage.Sender.SYSTEM,
+                    body=support_note,
+                )
+                notify_users(
+                    get_user_model().objects.filter(studentprofile__is_counselor=True),
+                    kind=UserNotification.Kind.URGENT_HELP,
+                    title='Prompt counselor review requested',
+                    body='A new check-in reached the provisional high survey review band. Sign in to review, this band is not a diagnosis.',
+                    target_url=reverse('counselor:dashboard'),
+                )
+                notify_user(
+                    request.user,
+                    kind=UserNotification.Kind.URGENT_HELP,
+                    title='Student support follow-up',
+                    body='Your answers reached the current high support band, so the counseling team was notified. This provisional result is not a diagnosis or emergency assessment.',
+                    target_url=reverse('counselor:contact_request') + f'?request_id={urgent_case.id}',
                 )
             return redirect('intake:result')
     else:

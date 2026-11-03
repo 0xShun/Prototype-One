@@ -9,7 +9,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from intake.models import IntakeDraft, IntakeResponse, Result
-from intake.views import _generate_mbiss_result
+from counselor.models import ContactMessage, StudentContactRequest
+from accounts.models import UserNotification
+from intake.views import _generate_survey_result
 
 from .helpers import create_result_for_student, create_student
 
@@ -22,33 +24,7 @@ class IntakeFlowTests(TestCase):
         self.client.login(username='intakestudent', password='StrongPass123!')
         response = self.client.post(
             reverse('intake:create'),
-            {
-                'workload_hours': 12,
-                'sleep_hours': 4,
-                'sleep_quality': 'Poor',
-                'study_habit_score': 2,
-                'social_media_hours': 5,
-                'deadline_pressure': 9,
-                'class_load': 8,
-                'mood_energy': 3,
-                'exercise_minutes': 10,
-                'sleep_consistency': 3,
-                'mbiss_exhaustion_1': 6,
-                'mbiss_exhaustion_2': 6,
-                'mbiss_exhaustion_3': 5,
-                'mbiss_exhaustion_4': 6,
-                'mbiss_exhaustion_5': 5,
-                'mbiss_cynicism_1': 5,
-                'mbiss_cynicism_2': 5,
-                'mbiss_cynicism_3': 4,
-                'mbiss_cynicism_4': 5,
-                'mbiss_academic_efficacy_1': 3,
-                'mbiss_academic_efficacy_2': 3,
-                'mbiss_academic_efficacy_3': 4,
-                'mbiss_academic_efficacy_4': 3,
-                'mbiss_academic_efficacy_5': 4,
-                'mbiss_academic_efficacy_6': 3,
-            },
+            {f'q{i}': 5 for i in range(1, 21)},
         )
 
         self.assertEqual(response.status_code, 302)
@@ -56,45 +32,29 @@ class IntakeFlowTests(TestCase):
         result = Result.objects.get(intake_response__student=self.student)
         self.assertIn(result.stress_level, {'Low', 'Moderate', 'High'})
         self.assertGreater(result.recommendations.count(), 0)
+        self.assertEqual(result.stress_level, 'High')
+        if result.stress_level == 'High':
+            urgent_request = StudentContactRequest.objects.get(student=self.student)
+            self.assertEqual(urgent_request.priority, StudentContactRequest.Priority.URGENT)
+            self.assertTrue(urgent_request.initiated_by_system)
+            self.assertEqual(urgent_request.messages.first().sender, ContactMessage.Sender.SYSTEM)
+            self.assertTrue(UserNotification.objects.filter(recipient=self.student, kind=UserNotification.Kind.URGENT_HELP).exists())
 
-    def test_result_band_is_based_on_mbiss_subscales(self):
+    def test_result_band_is_based_on_survey_blocks(self):
         intake, _ = create_result_for_student(self.student, stress_level='High')
-        for field in [
-            'mbiss_exhaustion_1', 'mbiss_exhaustion_2', 'mbiss_exhaustion_3',
-            'mbiss_exhaustion_4', 'mbiss_exhaustion_5', 'mbiss_cynicism_1',
-            'mbiss_cynicism_2', 'mbiss_cynicism_3', 'mbiss_cynicism_4',
-        ]:
-            setattr(intake, field, 1)
-        for field in [
-            'mbiss_academic_efficacy_1', 'mbiss_academic_efficacy_2',
-            'mbiss_academic_efficacy_3', 'mbiss_academic_efficacy_4',
-            'mbiss_academic_efficacy_5', 'mbiss_academic_efficacy_6',
-        ]:
-            setattr(intake, field, 7)
+        for i in range(1, 21):
+            setattr(intake, f'q{i}', 1)
         intake.save()
 
-        low_result = _generate_mbiss_result(intake)
+        low_result = _generate_survey_result(intake)
 
         self.assertEqual(low_result[0], 'Low')
 
-        intake.mbiss_exhaustion_1 = 7
-        intake.mbiss_exhaustion_2 = 7
-        intake.mbiss_exhaustion_3 = 7
-        intake.mbiss_exhaustion_4 = 7
-        intake.mbiss_exhaustion_5 = 7
-        intake.mbiss_cynicism_1 = 7
-        intake.mbiss_cynicism_2 = 7
-        intake.mbiss_cynicism_3 = 7
-        intake.mbiss_cynicism_4 = 7
-        intake.mbiss_academic_efficacy_1 = 1
-        intake.mbiss_academic_efficacy_2 = 1
-        intake.mbiss_academic_efficacy_3 = 1
-        intake.mbiss_academic_efficacy_4 = 1
-        intake.mbiss_academic_efficacy_5 = 1
-        intake.mbiss_academic_efficacy_6 = 1
+        for i in range(1, 21):
+            setattr(intake, f'q{i}', 5)
         intake.save()
 
-        high_result = _generate_mbiss_result(intake)
+        high_result = _generate_survey_result(intake)
 
         self.assertEqual(high_result[0], 'High')
 
@@ -109,13 +69,13 @@ class IntakeFlowTests(TestCase):
         self.assertContains(response, 'High')
         self.assertNotContains(response, 'Low', status_code=200)
 
-    def test_result_page_separates_pending_prediction_from_mbiss_result(self):
+    def test_result_page_separates_pending_prediction_from_survey_result(self):
         create_result_for_student(self.student, stress_level='Moderate')
         self.client.login(username='intakestudent', password='StrongPass123!')
 
         response = self.client.get(reverse('intake:result'))
 
-        self.assertContains(response, 'Burnout question scores')
+        self.assertContains(response, 'Check-in area scores')
         self.assertContains(response, 'Predictive support signal')
         self.assertContains(response, 'enough approved data and a trained model')
         self.assertNotContains(response, 'Low:')
@@ -180,10 +140,8 @@ class IntakeFlowTests(TestCase):
     def test_draft_endpoint_persists_payload_for_logged_in_student(self):
         self.client.login(username='intakestudent', password='StrongPass123!')
         payload = {
-            'workload_hours': '12',
-            'sleep_hours': '6',
-            'sleep_quality': 'Fair',
-            'study_habit_score': '5',
+            'q1': '4',
+            'q2': '3',
         }
 
         response = self.client.post(
@@ -194,23 +152,21 @@ class IntakeFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         draft = IntakeDraft.objects.get(student=self.student)
-        self.assertEqual(draft.payload['workload_hours'], '12')
-        self.assertEqual(draft.payload['sleep_quality'], 'Fair')
+        self.assertEqual(draft.payload['q1'], '4')
+        self.assertEqual(draft.payload['q2'], '3')
 
     def test_intake_form_restores_saved_draft_on_load(self):
         IntakeDraft.objects.create(student=self.student, payload={
-            'workload_hours': '8',
-            'sleep_hours': '7',
-            'sleep_quality': 'Good',
-            'study_habit_score': '6',
+            'q1': '4',
+            'q2': '5',
         })
         self.client.login(username='intakestudent', password='StrongPass123!')
 
         response = self.client.get(reverse('intake:create'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'value="8"')
-        self.assertContains(response, 'Good')
+        self.assertContains(response, 'value="4"')
+        self.assertContains(response, 'value="5"')
 
     def test_intake_page_uses_redesigned_sections_and_guidance(self):
         self.client.login(username='intakestudent', password='StrongPass123!')
@@ -218,11 +174,11 @@ class IntakeFlowTests(TestCase):
         response = self.client.get(reverse('intake:create'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'How you\'re managing right now')
-        self.assertContains(response, 'School demands')
-        self.assertContains(response, 'Recovery and rest')
-        self.assertContains(response, 'Focus and energy')
-        self.assertContains(response, 'Choose the option that feels most accurate for the past week')
+        self.assertContains(response, 'Academic burnout')
+        self.assertContains(response, 'Academic stress and workload')
+        self.assertContains(response, 'Social media usage')
+        self.assertContains(response, 'Sleep patterns and habits')
+        self.assertContains(response, '1 = Never / Strongly Disagree')
 
     def test_student_can_download_own_supporting_file(self):
         intake, _ = create_result_for_student(self.student, stress_level='Moderate')

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Notifications</h2>
+    <p><a class="text-link" href="{% url 'notification_settings' %}">Notification settings</a></p>
+    {% if user_notifications %}
+        <form method="post" action="{% url 'mark_all_notifications_read' %}">
+            {% csrf_token %}
+            <button class="btn btn-secondary" type="submit">Mark all as read</button>
+        </form>
+        <div class="results-grid">
+            {% for item in user_notifications %}
+                <article class="result-card {% if not item.is_read %}notification-unread{% endif %}">
+                    <div class="result-header">
+                        <strong>{{ item.title }}</strong>
+                        <time class="result-date">{{ item.created_at|date:"M d, Y g:i A" }}</time>
+                    </div>
+                    <p class="result-summary">{{ item.body }}</p>
+                    {% if not item.is_read %}
+                        <form method="post" action="{% url 'mark_notification_read' item.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-secondary" type="submit">Open and mark as read</button>
+                        </form>
+                    {% elif item.target_url %}
+                        <a class="btn btn-secondary" href="{{ item.target_url }}">Open</a>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You have no notifications yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

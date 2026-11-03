@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>My appointments</h2>
+    {% if bookings %}
+        <div class="results-grid">
+            {% for booking in bookings %}
+                <article class="result-card">
+                    <div class="result-header">
+                        <strong>{{ booking.starts_at|date:"D, M d, Y" }}</strong>
+                        <span>{{ booking.starts_at|date:"g:i A" }} to {{ booking.ends_at|date:"g:i A" }}</span>
+                    </div>
+                    <p>Counselor: {{ booking.counselor.get_full_name|default:booking.counselor.username }}</p>
+                    <form method="post" action="{% url 'counselor:cancel_appointment' booking.id %}" onsubmit="return window.confirm('Cancel this appointment? The full time slot will become available again.');">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary" type="submit">Cancel appointment</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You do not have any upcoming appointments.</p>
+        <a class="btn btn-primary" href="{% url 'counselor:appointment_calendar' %}">View available times</a>
+    {% endif %}
+</div>
+{% endblock %}

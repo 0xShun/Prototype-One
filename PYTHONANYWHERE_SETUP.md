@@ -29,8 +29,13 @@ In PythonAnywhere, set these in the Web app environment (or in the WSGI file if 
 - `DJANGO_DEBUG`: `false`
 - `DJANGO_ALLOWED_HOSTS`: `yourusername.pythonanywhere.com`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`: `https://yourusername.pythonanywhere.com`
+- `WEBPUSH_VAPID_PUBLIC_KEY`: public key used by browser push subscriptions
+- `WEBPUSH_VAPID_PRIVATE_KEY`: private VAPID key, keep this secret
+- `WEBPUSH_VAPID_SUBJECT`: administrator contact, for example `mailto:admin@school.edu`
 
 If you later add a custom domain, append it to both host/origin values.
+
+Generate a VAPID key pair in the project virtual environment with `vapid --gen --json`. Store the public and private keys in the PythonAnywhere environment or WSGI configuration, never in Git. If push keys are not configured, in-app notifications continue to work and browser push stays disabled.
 
 ## 4) Create the Web app (Manual config)
 
@@ -85,7 +90,17 @@ Add static mapping:
 
 Then click **Reload** on the Web tab.
 
-## 8) Optional sanity checks
+## 8) Weekly elevated-support digest
+
+The weekly counselor digest is an idempotent management command. Add a PythonAnywhere scheduled task to run every Monday, using the app virtual environment:
+
+```bash
+cd /home/yourusername/Prototype-One && workon prototypeone-venv && python manage.py send_weekly_elevated_digest
+```
+
+The command summarizes students whose latest result from the previous Monday-to-Monday period is Moderate. It records delivery per counselor and week, so rerunning the task does not send duplicates.
+
+## 9) Optional sanity checks
 
 ```bash
 python manage.py check --deploy

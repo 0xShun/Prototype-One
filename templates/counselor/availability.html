@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>Appointments and availability</h2>
+    <p>Create recurring weekly time slots. Students book the complete slot shown in their calendar.</p>
+    <form method="post" class="schedule-form">
+        {% csrf_token %}
+        {{ availability_form.as_p }}
+        <button class="btn btn-primary" type="submit" name="save_availability">Add recurring time</button>
+    </form>
+    <h3>Your recurring times</h3>
+    {% if rules %}
+        <ul class="list-stack">
+            {% for rule in rules %}
+                <li>{{ rule.get_weekday_display }}, {{ rule.start_time|time:"g:i A" }} to {{ rule.end_time|time:"g:i A" }}, from {{ rule.effective_from }}{% if rule.effective_until %} until {{ rule.effective_until }}{% endif %}
+                    <form method="post" action="{% url 'counselor:deactivate_availability' rule.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary" type="submit">Stop offering this time</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No recurring appointment times have been set.</p>
+    {% endif %}
+    <h3>Mark unavailable</h3>
+    <p>Add a date and time that should be removed from your recurring slots. A period overlapping an existing booking cannot be saved.</p>
+    <form method="post" class="schedule-form">
+        {% csrf_token %}
+        {{ unavailable_form.as_p }}
+        <button class="btn btn-secondary" type="submit" name="save_unavailable">Add unavailable time</button>
+    </form>
+    <h3>Current unavailable times</h3>
+    {% if unavailable_periods %}
+        <ul class="list-stack">
+            {% for period in unavailable_periods %}
+                <li>{{ period.starts_at|date:"D, M d, Y g:i A" }} to {{ period.ends_at|date:"g:i A" }}{% if period.reason %}, {{ period.reason }}{% endif %}
+                    <form method="post" action="{% url 'counselor:delete_unavailable_time' period.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary" type="submit">Remove exception</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No unavailable periods have been added.</p>
+    {% endif %}
+    <h3>Upcoming appointments</h3>
+    {% if bookings %}
+        <ul class="list-stack">
+            {% for booking in bookings %}
+                <li>{{ booking.starts_at|date:"D, M d, Y, g:i A" }} to {{ booking.ends_at|date:"g:i A" }}, {{ booking.student.get_full_name|default:booking.student.username }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No appointments are booked.</p>
+    {% endif %}
+</div>
+{% endblock %}

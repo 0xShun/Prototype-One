@@ -2,8 +2,28 @@
 {% block content %}
 <div class="form-card">
     <h2>Student support</h2>
-    <p>Students with Moderate or High support levels who may benefit from help.</p>
+    <p>Students with Urgent or Elevated support signals are shown first for counselor review.</p>
     <p><a class="text-link" href="{% url 'counselor:archive' %}">Open archived results</a></p>
+    <p><a class="text-link" href="{% url 'counselor:availability' %}">Manage availability and appointments</a></p>
+
+    <h3>Urgent requests</h3>
+    {% if urgent_requests %}
+        <div class="results-grid">
+            {% for request in urgent_requests %}
+                <div class="result-card urgent-request-card">
+                    <div class="result-header">
+                        <span class="badge-high">Urgent</span>
+                        <span class="result-date">{{ request.created_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="student-summary"><strong>{{ request.student.first_name|default:request.student.username }}</strong></p>
+                    <p class="result-summary">{{ request.messages.last.body }}</p>
+                    <a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-primary">Review and claim</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No urgent requests waiting.</p>
+    {% endif %}
 
     <h3>Requests assigned to you</h3>
     {% if assigned_requests %}
@@ -11,7 +31,11 @@
             {% for request in assigned_requests %}
                 <div class="result-card">
                     <div class="result-header">
-                        <span class="badge-moderate">{{ request.status }}</span>
+                        {% if request.priority == 'Urgent' %}
+                            <span class="badge-high">Urgent, {{ request.status }}</span>
+                        {% else %}
+                            <span class="badge-moderate">{{ request.status }}</span>
+                        {% endif %}
                         <span class="result-date">{{ request.updated_at|date:"M d, Y g:i A" }}</span>
                     </div>
                     <p class="student-summary"><strong>{{ request.student.first_name|default:request.student.username }}</strong></p>
@@ -22,6 +46,28 @@
         </div>
     {% else %}
         <p>No active requests are assigned to you.</p>
+    {% endif %}
+
+    <h3>Teacher referrals</h3>
+    {% if teacher_referrals %}
+        <div class="results-grid">
+            {% for referral in teacher_referrals %}
+                <div class="result-card">
+                    <div class="result-header">
+                        <strong>{{ referral.student.first_name|default:referral.student.username }}</strong>
+                        <span class="result-date">{{ referral.created_at|date:"M d, Y g:i A" }}</span>
+                    </div>
+                    <p class="student-meta">Referred by {{ referral.teacher.get_full_name|default:referral.teacher.username }}</p>
+                    <p class="result-summary">{{ referral.reason }}</p>
+                    <form method="post" action="{% url 'counselor:review_teacher_referral' referral.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary" type="submit">Mark reviewed</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No new teacher referrals.</p>
     {% endif %}
 
     <h3>Unassigned requests</h3>
@@ -50,9 +96,10 @@
                     <div class="student-header">
                         <div>
                             <h4>{{ item.user.first_name|default:item.user.username }}</h4>
-                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}</p>
+                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}{% if item.profile.age %} • Age {{ item.profile.age }}{% endif %}{% if item.profile.section %} • Section {{ item.profile.section }}{% endif %}</p>
+                            <p class="student-meta">Teacher referrals: {{ item.profile.referral_count }}</p>
                         </div>
-                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{{ item.latest_result.stress_level }}</span>
+                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{% if item.latest_result.stress_level == 'High' %}Urgent{% elif item.latest_result.stress_level == 'Moderate' %}Elevated{% else %}Routine{% endif %}</span>
                     </div>
                     <p class="student-summary">{{ item.latest_result.summary }}</p>
                     <a href="{% url 'counselor:student_detail' item.user.id %}" class="btn btn-secondary">View full history</a>
@@ -74,9 +121,10 @@
                     <div class="student-header">
                         <div>
                             <h4>{{ item.user.first_name|default:item.user.username }}</h4>
-                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}</p>
+                            <p class="student-meta">{{ item.profile.program }} • Year {{ item.profile.year_level }}{% if item.profile.age %} • Age {{ item.profile.age }}{% endif %}{% if item.profile.section %} • Section {{ item.profile.section }}{% endif %}</p>
+                            <p class="student-meta">Teacher referrals: {{ item.profile.referral_count }}</p>
                         </div>
-                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{{ item.latest_result.stress_level }}</span>
+                        <span class="badge-{{ item.latest_result.stress_level|lower }}">{% if item.latest_result.stress_level == 'High' %}Urgent{% elif item.latest_result.stress_level == 'Moderate' %}Elevated{% else %}Routine{% endif %}</span>
                     </div>
                     <p class="student-summary">{{ item.latest_result.summary }}</p>
                     <a href="{% url 'counselor:student_detail' item.user.id %}" class="btn btn-secondary">View full history</a>

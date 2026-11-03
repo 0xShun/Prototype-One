@@ -5,6 +5,7 @@
         <div>
             <h2>{{ student.first_name|default:student.username }}</h2>
             <p class="student-meta-full">{{ profile.program }} • Year {{ profile.year_level }} • @{{ student.username }}</p>
+                            <p class="student-meta-full">{% if profile.age %}Age {{ profile.age }}{% endif %}{% if profile.section %} • Section {{ profile.section }}{% endif %}</p>
         </div>
     </div>
 
@@ -51,19 +52,13 @@
                     <div class="result-details">
                         <h5>Check-in details</h5>
                         <div class="intake-stats">
-                            <div class="stat"><strong>Exhaustion score:</strong> {{ result.intake_response.mbiss_exhaustion_score }}</div>
-                            <div class="stat"><strong>Cynicism score:</strong> {{ result.intake_response.mbiss_cynicism_score }}</div>
-                            <div class="stat"><strong>Academic efficacy:</strong> {{ result.intake_response.mbiss_academic_efficacy_score }}</div>
-                            <div class="stat"><strong>Workload:</strong> {{ result.intake_response.workload_hours }}h</div>
-                            <div class="stat"><strong>Sleep:</strong> {{ result.intake_response.sleep_hours }}h</div>
-                            <div class="stat"><strong>Quality:</strong> {{ result.intake_response.sleep_quality }}</div>
-                            <div class="stat"><strong>Study habits:</strong> {{ result.intake_response.study_habit_score }}/10</div>
-                            <div class="stat"><strong>Social media:</strong> {{ result.intake_response.social_media_hours }}h</div>
-                            <div class="stat"><strong>Deadline pressure:</strong> {{ result.intake_response.deadline_pressure }}/10</div>
-                            <div class="stat"><strong>Class load:</strong> {{ result.intake_response.class_load }}/10</div>
-                            <div class="stat"><strong>Mood and energy:</strong> {{ result.intake_response.mood_energy }}/10</div>
-                            <div class="stat"><strong>Exercise:</strong> {{ result.intake_response.exercise_minutes }} min</div>
-                            <div class="stat"><strong>Sleep consistency:</strong> {{ result.intake_response.sleep_consistency }}/10</div>
+                            <div class="stat"><strong>Academic burnout:</strong> {{ result.intake_response.academic_burnout_score }}/25</div>
+                            <div class="stat"><strong>Academic stress and workload:</strong> {{ result.intake_response.academic_stress_score }}/25</div>
+                            <div class="stat"><strong>Social media usage:</strong> {{ result.intake_response.social_media_score }}/30</div>
+                            <div class="stat"><strong>Sleep patterns and habits:</strong> {{ result.intake_response.sleep_patterns_score }}/20</div>
+                            {% if result.intake_response.presenting_concern %}
+                                <div class="stat intake-concern"><strong>Student's note:</strong> {{ result.intake_response.presenting_concern }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     
