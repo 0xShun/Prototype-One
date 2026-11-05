@@ -46,7 +46,8 @@ class PublicPageTests(TestCase):
     def test_base_template_includes_install_prompt(self):
         response = self.client.get(reverse('home'))
 
-        self.assertContains(response, 'Install App')
+        self.assertNotContains(response, 'id="refresh-prompt"')
+        self.assertNotContains(response, 'id="install-banner"')
         self.assertContains(response, 'beforeinstallprompt')
         self.assertContains(response, 'appinstalled')
         self.assertContains(response, 'deferredInstallPrompt.prompt()')

@@ -19,6 +19,7 @@
     <div class="app-shell-loading__spinner"></div>
     <span>Loading StudentSense</span>
 </div>
+{% comment %}
 <div class="refresh-prompt" id="refresh-prompt" role="status" aria-live="polite" hidden>
     <span>Refresh</span>
     <button type="button" class="refresh-prompt__button" id="refresh-app-button">Update available</button>
@@ -29,6 +30,7 @@
     <button type="button" class="install-banner__button" id="install-app-button">Install App</button>
     <button type="button" class="prompt-dismiss-button" id="dismiss-install-banner" aria-label="Close install app message">&times;</button>
 </div>
+{% endcomment %}
 <header class="app-shell-header">
     <nav class="top-nav">
         <a class="brand" href="{% url 'home' %}" aria-label="StudentSense home">
