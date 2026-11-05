@@ -22,10 +22,12 @@
 <div class="refresh-prompt" id="refresh-prompt" role="status" aria-live="polite" hidden>
     <span>Refresh</span>
     <button type="button" class="refresh-prompt__button" id="refresh-app-button">Update available</button>
+    <button type="button" class="prompt-dismiss-button" id="dismiss-refresh-prompt" aria-label="Close update available message">&times;</button>
 </div>
 <div class="install-banner" id="install-banner" role="status" aria-live="polite" hidden>
     <span>Install App</span>
     <button type="button" class="install-banner__button" id="install-app-button">Install App</button>
+    <button type="button" class="prompt-dismiss-button" id="dismiss-install-banner" aria-label="Close install app message">&times;</button>
 </div>
 <header class="app-shell-header">
     <nav class="top-nav">
@@ -116,8 +118,10 @@
     let waitingRegistration = null;
     const refreshPrompt = document.getElementById('refresh-prompt');
     const refreshButton = document.getElementById('refresh-app-button');
+    const dismissRefreshPrompt = document.getElementById('dismiss-refresh-prompt');
     const installBanner = document.getElementById('install-banner');
     const installButton = document.getElementById('install-app-button');
+    const dismissInstallBanner = document.getElementById('dismiss-install-banner');
     const navToggle = document.getElementById('nav-toggle');
     const primaryNavigation = document.getElementById('primary-navigation');
     let deferredInstallPrompt = null;
@@ -209,6 +213,14 @@
         });
     }
 
+    if (dismissRefreshPrompt) {
+        dismissRefreshPrompt.addEventListener('click', () => {
+            if (refreshPrompt) {
+                refreshPrompt.hidden = true;
+            }
+        });
+    }
+
     if (installButton) {
         installButton.addEventListener('click', async () => {
             if (!deferredInstallPrompt) {
@@ -222,6 +234,10 @@
                 hideInstallPrompt();
             }
         });
+    }
+
+    if (dismissInstallBanner) {
+        dismissInstallBanner.addEventListener('click', hideInstallPrompt);
     }
 
     if (navToggle && primaryNavigation) {

@@ -151,6 +151,22 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
+.prompt-dismiss-button {
+  border: 0;
+  padding: 0.25rem 0.45rem;
+  background: transparent;
+  color: currentColor;
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.prompt-dismiss-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .offline-draft-banner {
   display: flex;
   flex-direction: column;

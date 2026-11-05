@@ -50,6 +50,8 @@ class PublicPageTests(TestCase):
         self.assertContains(response, 'beforeinstallprompt')
         self.assertContains(response, 'appinstalled')
         self.assertContains(response, 'deferredInstallPrompt.prompt()')
+        self.assertContains(response, 'dismiss-refresh-prompt')
+        self.assertContains(response, 'dismiss-install-banner')
 
     def test_base_template_includes_mobile_bottom_nav(self):
         response = self.client.get(reverse('home'))
