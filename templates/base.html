@@ -23,9 +23,9 @@
     <span>Refresh</span>
     <button type="button" class="refresh-prompt__button" id="refresh-app-button">Update available</button>
 </div>
-<div class="install-banner" role="status" aria-live="polite">
+<div class="install-banner" id="install-banner" role="status" aria-live="polite" hidden>
     <span>Install App</span>
-    <button type="button" class="install-banner__button">Install App</button>
+    <button type="button" class="install-banner__button" id="install-app-button">Install App</button>
 </div>
 <header class="app-shell-header">
     <nav class="top-nav">
@@ -116,8 +116,43 @@
     let waitingRegistration = null;
     const refreshPrompt = document.getElementById('refresh-prompt');
     const refreshButton = document.getElementById('refresh-app-button');
+    const installBanner = document.getElementById('install-banner');
+    const installButton = document.getElementById('install-app-button');
     const navToggle = document.getElementById('nav-toggle');
     const primaryNavigation = document.getElementById('primary-navigation');
+    let deferredInstallPrompt = null;
+
+    function isInstalled() {
+        return window.matchMedia('(display-mode: standalone)').matches
+            || window.navigator.standalone === true;
+    }
+
+    function showInstallPrompt() {
+        if (installBanner && !isInstalled()) {
+            installBanner.hidden = false;
+        }
+    }
+
+    function hideInstallPrompt() {
+        if (installBanner) {
+            installBanner.hidden = true;
+        }
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        showInstallPrompt();
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        hideInstallPrompt();
+    });
+
+    if (isInstalled()) {
+        hideInstallPrompt();
+    }
 
     function showRefreshPrompt(registration) {
         waitingRegistration = registration;
@@ -171,6 +206,21 @@
                 waitingRegistration.postMessage({ type: 'SKIP_WAITING' });
             }
             window.location.reload();
+        });
+    }
+
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) {
+                return;
+            }
+
+            deferredInstallPrompt.prompt();
+            const choice = await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            if (choice.outcome === 'accepted') {
+                hideInstallPrompt();
+            }
         });
     }
 
