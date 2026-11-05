@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="chat-page">
+    <div class="chat-shell chat-shell--single">
+        <section class="chat-room chat-room--detail">
+            <div class="chat-room__header">
+                <div class="chat-room__hero">
+                    <div class="chat-room__avatar">{{ other_user.username|slice:':1'|upper }}</div>
+                    <div>
+                        <h2>{{ other_user.get_full_name|default:other_user.username }}</h2>
+                        <p>Conversation</p>
+                    </div>
+                </div>
+                {% if not is_counselor %}
+                    <form method="post" class="urgent-chat-form">
+                        {% csrf_token %}
+                        <button class="btn btn-danger" type="submit" name="urgent_help" value="1">Urgent help needed</button>
+                    </form>
+                {% endif %}
+            </div>
+            <div class="chat-room__messages" id="chat-messages">
+                {% for message in messages %}
+                    <div class="chat-row {% if message.is_system %}chat-row--system{% elif message.sender == 'Student' and not is_counselor or message.sender == 'Counselor' and is_counselor %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
+                        <div class="chat-bubble{% if message.is_system %} chat-bubble--system {{ message.system_style }}{% endif %}">
+                            <div class="chat-bubble__meta">
+                                <span>{{ message.sender }}</span>
+                                <time>{{ message.created_at|date:"M d, Y g:i A" }}</time>
+                            </div>
+                            <p>{{ message.body }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="chat-room__composer">
+                <form method="post" class="chat-composer">
+                    {% csrf_token %}
+                    {% if is_counselor %}
+                        {{ form.body }}
+                    {% else %}
+                        {{ form.message }}
+                    {% endif %}
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Send message</button>
+                        <a class="btn btn-secondary" href="{% url 'counselor:messages_home' %}">Back to messages</a>
+                    </div>
+                </form>
+            </div>
+            <script>
+                window.addEventListener('load', () => {
+                    const messages = document.getElementById('chat-messages');
+                    if (messages) messages.scrollTop = messages.scrollHeight;
+                });
+            </script>
+        </section>
+    </div>
+</div>
+{% endblock %}

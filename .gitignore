@@ -22,6 +22,7 @@ staticfiles/
 media/
 data/public/
 model_prototype/reports/
+model_prototype/model_artifacts/
 
 # OS/editor files
 .DS_Store

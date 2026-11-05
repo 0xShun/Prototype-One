@@ -15,7 +15,12 @@
                             <td data-label="Student">{{ request.student.first_name|default:request.student.username }}</td>
                             <td data-label="Message">{{ request.messages.last.body }}</td>
                             <td data-label="Created">{{ request.created_at|date:"M d, Y g:i A" }}</td>
-                            <td data-label="Action"><a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-primary">Review and claim</a></td>
+                            <td data-label="Action">
+                                <form method="post" action="{% url 'counselor:claim_contact_request' request.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-primary" type="submit">Review and claim</button>
+                                </form>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -23,6 +28,7 @@
         </div>
     {% else %}<p>No urgent requests waiting.</p>{% endif %}
 
+    {% comment %}
     <h3>Requests assigned to you</h3>
     {% if assigned_requests %}
         <div class="table-wrap">
@@ -35,13 +41,19 @@
                             <td data-label="Status">{{ request.status }}</td>
                             <td data-label="Latest message">{{ request.messages.last.body }}</td>
                             <td data-label="Updated">{{ request.updated_at|date:"M d, Y g:i A" }}</td>
-                            <td data-label="Action"><a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Open conversation</a></td>
+                            <td data-label="Action">
+                                <form method="post" action="{% url 'counselor:open_support_conversation' request.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-secondary" type="submit">Open conversation</button>
+                                </form>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}<p>No active requests are assigned to you.</p>{% endif %}
+    {% endcomment %}
 
     <h3>Teacher referrals</h3>
     {% if teacher_referrals %}
@@ -58,7 +70,7 @@
                             <td data-label="Action">
                                 <form method="post" action="{% url 'counselor:review_teacher_referral' referral.id %}">
                                     {% csrf_token %}
-                                    <button class="btn btn-secondary" type="submit">Mark reviewed</button>
+                                    <button class="btn btn-primary" type="submit">Open conversation</button>
                                 </form>
                             </td>
                         </tr>
@@ -68,36 +80,10 @@
         </div>
     {% else %}<p>No new teacher referrals.</p>{% endif %}
 
-    <h3>Unassigned requests</h3>
-    {% if unassigned_requests %}
-        <div class="table-wrap">
-            <table class="support-table">
-                <thead><tr><th>Student</th><th>Status</th><th>Message</th><th>Created</th><th>Action</th></tr></thead>
-                <tbody>
-                    {% for request in unassigned_requests %}
-                        <tr>
-                            <td data-label="Student">{{ request.student.first_name|default:request.student.username }}</td>
-                            <td data-label="Status">{{ request.status }}</td>
-                            <td data-label="Message">{{ request.messages.last.body }}</td>
-                            <td data-label="Created">{{ request.created_at|date:"M d, Y g:i A" }}</td>
-                            <td data-label="Action"><a href="{% url 'counselor:contact_request_detail' request.id %}" class="btn btn-secondary">Review and claim</a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}<p>No unassigned requests right now.</p>{% endif %}
-
     <h3>Students needing attention</h3>
     {% if students %}
         {% include "counselor/_student_support_table.html" with student_items=students %}
     {% else %}<p>All students are showing healthy stress levels. Great work!</p>{% endif %}
 
-    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e6ebf3;">
-    <h3>All students</h3>
-    <p>Complete list of students who have completed a check-in.</p>
-    {% if all_students %}
-        {% include "counselor/_student_support_table.html" with student_items=all_students %}
-    {% else %}<p>No student submissions yet.</p>{% endif %}
 </div>
 {% endblock %}

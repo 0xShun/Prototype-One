@@ -33,6 +33,10 @@ The prototype predicts the source dataset's continuous `burnout_score` with Ligh
 
 The prototype code is in `model_prototype/train_public_prototype.py`. The final StudentSense model still requires paired custom StudentSense inputs and approved MBI-SS-derived targets from real or appropriately licensed data.
 
+An additional auxiliary source was reviewed and downloaded locally from Zenodo record `18706837`, licensed CC BY 4.0: *A Dataset of University Students' Stress and Anxiety Levels based on Questionnaires and Wearable Sensors*. It contains 35 participant folders, daily questionnaire rows, stress-score files, sleep data, and wearable measurements. The source is useful for researching time-series stress/sleep feature engineering, but it must not be concatenated with the 2,000-row prototype table because its rows, target, measurement process, and feature schema are different. It should be analyzed as a separate auxiliary benchmark or used later for a dedicated stress-forecasting experiment.
+
+The independent Zenodo stress prototype currently uses 1,436 valid daily stress rows from 32 participants, with a participant-level holdout. Its initial LightGBM result was MAE approximately `6.17`, RMSE approximately `9.02`, and R-squared approximately `-0.195`, so it does not generalize well enough for deployment. This confirms that the source is useful for pipeline and feature-engineering experiments, not as an additional training source for the StudentSense burnout model.
+
 
 Dev note: the MBI-SS score will be the target variable. It will be used for training along with the custom input, but the deployed model will only use the custom input.
 

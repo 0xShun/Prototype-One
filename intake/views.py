@@ -1,4 +1,6 @@
 import json
+import logging
+import random
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
@@ -14,6 +16,10 @@ from counselor.models import ContactMessage, StudentContactRequest
 from .forms import IntakeResponseForm
 from .models import IntakeDraft, IntakeResponse, Result
 from .model_service import predict_support_signal
+from model_prototype.predict_multinomial_support import predict as predict_multinomial_support
+
+
+logger = logging.getLogger(__name__)
 
 
 def _survey_band(score, item_count):
@@ -114,37 +120,36 @@ def create_intake(request):
                     tip_text=tip_text,
                 )
             if stress_level == 'High':
-                from accounts.notifications import notify_user, notify_users
-                from accounts.models import UserNotification
-                support_note = (
-                    'StudentSense flagged this check-in for prompt counselor review based on its provisional survey support band. '
-                    'This is a screening prompt, not a diagnosis or emergency assessment.'
-                )
-                urgent_case = StudentContactRequest.objects.create(
-                    student=request.user,
-                    message=support_note,
-                    priority=StudentContactRequest.Priority.URGENT,
-                    initiated_by_system=True,
-                )
-                ContactMessage.objects.create(
-                    thread=urgent_case,
-                    sender=ContactMessage.Sender.SYSTEM,
-                    body=support_note,
-                )
-                notify_users(
-                    get_user_model().objects.filter(studentprofile__is_counselor=True),
-                    kind=UserNotification.Kind.URGENT_HELP,
-                    title='Prompt counselor review requested',
-                    body='A new check-in reached the provisional high survey review band. Sign in to review, this band is not a diagnosis.',
-                    target_url=reverse('counselor:dashboard'),
-                )
-                notify_user(
-                    request.user,
-                    kind=UserNotification.Kind.URGENT_HELP,
-                    title='Student support follow-up',
-                    body='Your answers reached the current high support band, so the counseling team was notified. This provisional result is not a diagnosis or emergency assessment.',
-                    target_url=reverse('counselor:contact_request') + f'?request_id={urgent_case.id}',
-                )
+                support_note = "This student's check-in result is high and needs urgent assistance."
+                counselors = list(get_user_model().objects.filter(studentprofile__is_counselor=True))
+                if counselors:
+                    counselor = random.choice(counselors)
+                    conversation = StudentContactRequest.objects.filter(
+                        student=request.user,
+                        assigned_counselor=counselor,
+                    ).order_by('-is_general_chat', '-updated_at').first()
+                    if conversation is None:
+                        conversation = StudentContactRequest.objects.create(
+                            student=request.user,
+                            assigned_counselor=counselor,
+                            message='A counselor conversation was started.',
+                            initiated_by_system=True,
+                            is_general_chat=True,
+                        )
+                        ContactMessage.objects.create(
+                            thread=conversation,
+                            sender=ContactMessage.Sender.SYSTEM,
+                            body=conversation.message,
+                        )
+                    conversation.priority = StudentContactRequest.Priority.URGENT
+                    conversation.status = StudentContactRequest.Status.OPEN
+                    conversation.is_general_chat = True
+                    conversation.save(update_fields=['priority', 'status', 'is_general_chat', 'updated_at'])
+                    ContactMessage.objects.create(
+                        thread=conversation,
+                        sender=ContactMessage.Sender.SYSTEM,
+                        body=support_note,
+                    )
             return redirect('intake:result')
     else:
         draft = IntakeDraft.objects.filter(student=request.user).order_by('-updated_at').first()
@@ -183,6 +188,58 @@ def history_view(request):
     context = {'results': results}
     context.update(_checkin_prompt_for(request.user))
     return render(request, 'intake/history.html', context)
+
+
+@login_required
+def analytics_view(request):
+    results = list(
+        Result.objects.filter(
+            intake_response__student=request.user,
+            archived_at__isnull=True,
+        )
+        .select_related('intake_response')
+        .order_by('-created_at')
+    )
+    latest = results[0] if results else None
+    previous = results[1] if len(results) > 1 else None
+    factor_definitions = [
+        ('Academic burnout', 'academic_burnout_score', 25),
+        ('Academic stress and workload', 'academic_stress_score', 25),
+        ('Social media usage', 'social_media_score', 30),
+        ('Sleep patterns and habits', 'sleep_patterns_score', 20),
+    ]
+    factors = []
+    if latest:
+        for label, attribute, maximum in factor_definitions:
+            score = getattr(latest.intake_response, attribute)
+            previous_score = getattr(previous.intake_response, attribute) if previous else None
+            factors.append({
+                'label': label,
+                'score': score,
+                'maximum': maximum,
+                'percent': round(score / maximum * 100),
+                'change': score - previous_score if previous_score is not None else None,
+            })
+    model_prediction = None
+    model_history_available = len(results) >= 2
+    model_unavailable = False
+    if model_history_available:
+        try:
+            model_prediction = predict_multinomial_support(results)
+        except (FileNotFoundError, ImportError, OSError, ValueError):
+            logger.exception('Unable to generate the offline analytics model estimate.')
+            model_unavailable = True
+    context = {
+        'latest': latest,
+        'previous': previous,
+        'factors': factors,
+        'checkin_count': len(results),
+        'results': list(reversed(results[:6])),
+        'model_prediction': model_prediction,
+        'model_history_available': model_history_available,
+        'model_unavailable': model_unavailable,
+    }
+    return render(request, 'intake/analytics.html', context)
 
 
 @login_required

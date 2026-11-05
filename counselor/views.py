@@ -125,6 +125,7 @@ def dashboard(request):
             Q(assigned_counselor=request.user)
             | Q(assigned_counselor__isnull=True, status=StudentContactRequest.Status.OPEN)
         )
+        .filter(dashboard_reviewed_at__isnull=True)
         .exclude(assigned_counselor=request.user, status=StudentContactRequest.Status.CLOSED)
         .order_by('-updated_at')
     )
@@ -227,6 +228,176 @@ def student_list(request):
         .order_by('user__last_name', 'user__first_name', 'user__username')
     )
     return render(request, 'counselor/student_list.html', {'students': students})
+
+
+@login_required
+def messages_home(request):
+    profile = getattr(request.user, 'studentprofile', None)
+    search_query = request.GET.get('q', '').strip()
+    if profile and profile.is_counselor:
+        conversations = (
+            StudentContactRequest.objects.filter(
+                assigned_counselor=request.user,
+                is_general_chat=True,
+            )
+            .select_related('student')
+            .prefetch_related('messages')
+            .order_by('-updated_at')
+        )
+        conversation_by_student = {conversation.student_id: conversation for conversation in conversations}
+        people = get_user_model().objects.filter(
+            studentprofile__is_counselor=False,
+            studentprofile__is_teacher=False,
+        ).select_related('studentprofile').order_by('last_name', 'first_name', 'username')
+        if search_query:
+            people = people.filter(
+                Q(first_name__icontains=search_query)
+                | Q(last_name__icontains=search_query)
+                | Q(username__icontains=search_query)
+            )
+        message_participants = [
+            {'person': student, 'conversation': conversation_by_student.get(student.id)}
+            for student in people
+        ]
+        list(get_messages(request))
+        return render(request, 'counselor/messages.html', {
+            'conversations': conversations,
+            'message_participants': message_participants,
+            'search_query': search_query,
+            'is_counselor': True,
+        })
+    if not profile or profile.is_teacher:
+        return HttpResponseForbidden('Only student and counselor accounts can use messages.')
+
+    conversations = (
+        StudentContactRequest.objects.filter(
+            student=request.user,
+            assigned_counselor__isnull=False,
+            is_general_chat=True,
+        )
+        .select_related('assigned_counselor')
+        .prefetch_related('messages')
+        .order_by('-updated_at')
+    )
+    counselors = get_user_model().objects.filter(
+        studentprofile__is_counselor=True,
+    ).select_related('studentprofile').order_by('last_name', 'first_name', 'username')
+    conversation_by_counselor = {
+        conversation.assigned_counselor_id: conversation for conversation in conversations
+    }
+    if search_query:
+        counselors = counselors.filter(
+            Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(username__icontains=search_query)
+        )
+    message_participants = [
+        {'person': counselor, 'conversation': conversation_by_counselor.get(counselor.id)}
+        for counselor in counselors
+    ]
+    list(get_messages(request))
+    return render(request, 'counselor/messages.html', {
+        'conversations': conversations,
+        'message_participants': message_participants,
+        'search_query': search_query,
+        'is_counselor': False,
+    })
+
+
+@login_required
+def start_student_conversation(request, counselor_id):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and (profile.is_counselor or profile.is_teacher):
+        return HttpResponseForbidden('Only student accounts can start counselor conversations.')
+    counselor = get_object_or_404(
+        get_user_model().objects.filter(studentprofile__is_counselor=True),
+        id=counselor_id,
+    )
+    conversation, _ = _get_or_create_conversation(request.user, counselor)
+    return redirect('counselor:student_conversation', counselor_id=counselor.id)
+
+
+@login_required
+def student_conversation(request, counselor_id):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and (profile.is_counselor or profile.is_teacher):
+        return HttpResponseForbidden('Only student accounts can use counselor conversations.')
+    counselor = get_object_or_404(
+        get_user_model().objects.filter(studentprofile__is_counselor=True),
+        id=counselor_id,
+    )
+    conversation, _ = _get_or_create_conversation(request.user, counselor)
+    if request.method == 'POST':
+        if request.POST.get('urgent_help'):
+            conversation.priority = StudentContactRequest.Priority.URGENT
+            conversation.status = StudentContactRequest.Status.OPEN
+            conversation.dashboard_reviewed_at = None
+            conversation.save(update_fields=['priority', 'status', 'dashboard_reviewed_at', 'updated_at'])
+            ContactMessage.objects.create(
+                thread=conversation,
+                sender=ContactMessage.Sender.SYSTEM,
+                body='The student marked this conversation as urgent and needs urgent assistance.',
+            )
+            notify_users(
+                get_user_model().objects.filter(studentprofile__is_counselor=True),
+                kind=UserNotification.Kind.URGENT_HELP,
+                title='Urgent student conversation',
+                body=f'{request.user.get_full_name() or request.user.username} marked a conversation as urgent.',
+                target_url=reverse('counselor:dashboard'),
+            )
+        else:
+            form = StudentContactReplyForm(request.POST)
+            if form.is_valid():
+                ContactMessage.objects.create(
+                    thread=conversation,
+                    sender=ContactMessage.Sender.STUDENT,
+                    body=form.cleaned_data['message'],
+                )
+                conversation.status = StudentContactRequest.Status.OPEN
+                conversation.save(update_fields=['status', 'updated_at'])
+        return redirect('counselor:student_conversation', counselor_id=counselor.id)
+    form = StudentContactReplyForm()
+    list(get_messages(request))
+    return render(request, 'counselor/conversation.html', {
+        'conversation': conversation,
+        'messages': _conversation_messages(conversation),
+        'form': form,
+        'is_counselor': False,
+        'other_user': counselor,
+    })
+
+
+@counselor_required
+def counselor_conversation(request, student_id):
+    student = get_object_or_404(
+        get_user_model().objects.filter(
+            studentprofile__is_counselor=False,
+            studentprofile__is_teacher=False,
+        ).select_related('studentprofile'),
+        id=student_id,
+    )
+    conversation, _ = _get_or_create_conversation(student, request.user)
+    if request.method == 'POST':
+        form = ContactMessageForm(request.POST)
+        if form.is_valid():
+            ContactMessage.objects.create(
+                thread=conversation,
+                sender=ContactMessage.Sender.COUNSELOR,
+                body=form.cleaned_data['body'],
+            )
+            conversation.status = StudentContactRequest.Status.IN_PROGRESS
+            conversation.replied_by = request.user
+            conversation.replied_at = timezone.now()
+            conversation.save(update_fields=['status', 'replied_by', 'replied_at', 'updated_at'])
+        return redirect('counselor:counselor_conversation', student_id=student.id)
+    list(get_messages(request))
+    return render(request, 'counselor/conversation.html', {
+        'conversation': conversation,
+        'messages': _conversation_messages(conversation),
+        'form': ContactMessageForm(),
+        'is_counselor': True,
+        'other_user': student,
+    })
 
 
 @counselor_required
@@ -336,9 +507,24 @@ def claim_contact_request(request, request_id):
             status=StudentContactRequest.Status.OPEN,
         )
         contact_request.assigned_counselor = request.user
-        contact_request.save(update_fields=['assigned_counselor', 'updated_at'])
+        contact_request.dashboard_reviewed_at = timezone.now()
+        contact_request.save(update_fields=['assigned_counselor', 'dashboard_reviewed_at', 'updated_at'])
     messages.success(request, 'This request is now assigned to you.')
-    return redirect('counselor:contact_request_detail', request_id=contact_request.id)
+    return redirect('counselor:counselor_conversation', student_id=contact_request.student_id)
+
+
+@counselor_required
+def open_support_conversation(request, request_id):
+    if request.method != 'POST':
+        return HttpResponseForbidden('Opening a support conversation requires a POST request.')
+    contact_request = get_object_or_404(
+        StudentContactRequest,
+        id=request_id,
+        assigned_counselor=request.user,
+    )
+    contact_request.dashboard_reviewed_at = timezone.now()
+    contact_request.save(update_fields=['dashboard_reviewed_at', 'updated_at'])
+    return redirect('counselor:counselor_conversation', student_id=contact_request.student_id)
 
 
 @counselor_required
@@ -366,7 +552,7 @@ def _legacy_review_teacher_referral(request, referral_id):
     referral.reviewed_by = request.user
     referral.reviewed_at = timezone.now()
     referral.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
-    return redirect('counselor:dashboard')
+    return redirect('counselor:counselor_conversation', student_id=referral.student_id)
 
 
 @counselor_required
@@ -583,6 +769,42 @@ def student_reply(request, request_id):
     return redirect(f'{reverse("counselor:contact_request")}?request_id={contact_request.id}')
 
 
+def _get_or_create_conversation(student, counselor):
+    conversation = (
+        StudentContactRequest.objects.filter(
+            student=student,
+            assigned_counselor=counselor,
+        )
+        .order_by('-is_general_chat', '-updated_at')
+        .first()
+    )
+    if conversation:
+        conversation.is_general_chat = True
+        if conversation.status == StudentContactRequest.Status.CLOSED:
+            conversation.status = StudentContactRequest.Status.IN_PROGRESS
+        conversation.save(update_fields=['is_general_chat', 'status', 'updated_at'])
+        return conversation, False
+
+    conversation = StudentContactRequest.objects.create(
+        student=student,
+        assigned_counselor=counselor,
+        initiated_by_system=True,
+        is_general_chat=True,
+        message='A counselor conversation was started.',
+        status=StudentContactRequest.Status.IN_PROGRESS,
+    )
+    ContactMessage.objects.create(
+        thread=conversation,
+        sender=ContactMessage.Sender.SYSTEM,
+        body=conversation.message,
+    )
+    return conversation, True
+
+
+def _conversation_messages(conversation):
+    return conversation.messages.select_related().all()
+
+
 @teacher_required
 def teacher_referral(request):
     if request.method == 'POST':
@@ -622,7 +844,7 @@ def review_teacher_referral(request, referral_id):
     referral.reviewed_by = request.user
     referral.reviewed_at = timezone.now()
     referral.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
-    return redirect('counselor:dashboard')
+    return redirect('counselor:counselor_conversation', student_id=referral.student_id)
 
 
 @login_required
@@ -926,6 +1148,14 @@ def book_appointment(request):
             messages.error(request, 'That appointment slot has already been booked.')
             return redirect('counselor:appointment_calendar')
         booking = AppointmentBooking.objects.create(student=request.user, counselor=rule.counselor, availability=rule, starts_at=starts_at, ends_at=ends_at)
+    conversation, _ = _get_or_create_conversation(request.user, rule.counselor)
+    student_name = request.user.get_full_name() or request.user.username
+    appointment_time = f'{timezone.localtime(starts_at).strftime("%b %d, %Y, %I:%M %p")} to {timezone.localtime(ends_at).strftime("%I:%M %p")}'
+    ContactMessage.objects.create(
+        thread=conversation,
+        sender=ContactMessage.Sender.SYSTEM,
+        body=f'{student_name} booked an appointment for {appointment_time}.',
+    )
     notify_user(rule.counselor, kind=UserNotification.Kind.APPOINTMENT, title='Appointment booked', body=f'{request.user.get_full_name() or request.user.username} booked {timezone.localtime(starts_at).strftime("%b %d, %I:%M %p")}.', target_url=reverse('counselor:availability'))
     notify_user(request.user, kind=UserNotification.Kind.APPOINTMENT, title='Appointment confirmed', body=f'Your appointment is booked for {timezone.localtime(starts_at).strftime("%b %d, %I:%M %p")}.', target_url=reverse('counselor:student_appointments'))
     messages.success(request, 'Your full appointment slot is booked.')
@@ -966,34 +1196,7 @@ def urgent_help(request):
     profile = getattr(request.user, 'studentprofile', None)
     if profile and (profile.is_counselor or profile.is_teacher):
         return HttpResponseForbidden('Urgent student help is available to student accounts.')
-    if request.method == 'POST':
-        form = StudentContactRequestForm(request.POST)
-        if form.is_valid():
-            contact = form.save(commit=False)
-            contact.student = request.user
-            contact.priority = StudentContactRequest.Priority.URGENT
-            contact.save()
-            ContactMessage.objects.create(thread=contact, sender=ContactMessage.Sender.STUDENT, body=contact.message)
-            counselors = get_user_model().objects.filter(studentprofile__is_counselor=True)
-            notify_users(
-                counselors,
-                kind=UserNotification.Kind.URGENT_HELP,
-                title='Urgent student support request',
-                body=f'{request.user.get_full_name() or request.user.username} requested urgent help.',
-                target_url=reverse('counselor:dashboard'),
-            )
-            notify_user(
-                request.user,
-                kind=UserNotification.Kind.URGENT_HELP,
-                title='Urgent request sent',
-                body='Your request was sent to the counseling team. If you are in immediate danger, contact local emergency services or a trusted adult now.',
-                target_url=reverse('counselor:contact_request') + f'?request_id={contact.id}',
-            )
-            messages.info(request, 'Your urgent request was sent. You can also contact a teacher directly from the directory.')
-            return redirect('counselor:teacher_directory')
-    else:
-        form = StudentContactRequestForm()
-    return render(request, 'counselor/urgent_help.html', {'form': form})
+    return redirect('counselor:messages_home')
 
 
 @login_required

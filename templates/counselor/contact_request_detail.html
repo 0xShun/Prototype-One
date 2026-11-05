@@ -30,8 +30,8 @@
                         <span>{{ group.grouper|date:"M d, Y" }}</span>
                     </div>
                     {% for message in group.list %}
-                        <div class="chat-row {% if message.sender == 'Counselor' %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
-                            <div class="chat-bubble">
+                        <div class="chat-row {% if message.is_system %}chat-row--system{% elif message.sender == 'Counselor' %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
+                            <div class="chat-bubble{% if message.is_system %} chat-bubble--system {{ message.system_style }}{% endif %}">
                                 <div class="chat-bubble__meta">
                                     <span>{{ message.sender }}</span>
                                     <time>{{ message.created_at|date:"g:i A" }}</time>

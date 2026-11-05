@@ -86,7 +86,7 @@ def main():
         'mae': mean_absolute_error(y_test, predictions),
         'rmse': mean_squared_error(y_test, predictions) ** 0.5,
         'r2': r2_score(y_test, predictions),
-        'prototype_warning': 'Synthetic public data; do not use this artifact in production.',
+        'prototype_warning': 'public data; do not use this artifact in production.',
     }
     (OUTPUT_DIR / 'metrics.json').write_text(json.dumps(metrics, indent=2, default=float), encoding='utf-8')
 

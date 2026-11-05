@@ -38,6 +38,44 @@ Limitations:
 - The resulting artifact must not be deployed or used to generate student results.
 - The final model requires paired custom StudentSense inputs and approved MBI-SS-derived targets.
 
+## Offline multinomial support prototype
+
+`train_multinomial_support_model.py` trains a separate, non-diagnostic classifier
+that estimates the support level of a student's next check-in from their
+previous check-ins. It uses only prior data, creates one transition row per
+student pair of consecutive results, and splits by student so the same student
+cannot appear in both training and test partitions.
+
+Run it from the repository root:
+
+```bash
+.venv/bin/python model_prototype/train_multinomial_support_model.py
+```
+
+The trainer requires at least 30 transitions and all three support levels in
+both student-level partitions. It writes an offline `joblib` artifact and
+metadata under `model_prototype/model_artifacts/multinomial_support/`. The
+artifact is not connected to the website, does not alter check-in results, and
+must not be interpreted as a diagnosis or emergency assessment.
+
+To run an isolated estimate for an existing student's results from the Django
+shell:
+
+```python
+from intake.models import Result
+from model_prototype.predict_multinomial_support import predict
+
+results = Result.objects.filter(
+    intake_response__student=student,
+    archived_at__isnull=True,
+).select_related('intake_response')
+estimate = predict(results)
+```
+
+The estimate includes a predicted support level and class probabilities. It
+requires at least two check-ins, is not used by any website view, and is
+explicitly non-diagnostic.
+
 ## Independent Zenodo Stress Prototype
 
 The separate `train_zenodo_stress_prototype.py` script uses the CC BY 4.0 Zenodo dataset under `data/public/zenodo_university_stress_18706837/`. It predicts that dataset's daily `STRESS_SCORE` using aggregated wearable/sleep measurements and questionnaire anxiety. It excludes the questionnaire's direct `stress` field to avoid target leakage and splits by participant.

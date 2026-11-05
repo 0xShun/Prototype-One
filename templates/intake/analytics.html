@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card analytics-page">
+    <div class="analytics-header">
+        <div>
+            <span class="eyebrow">My data</span>
+            <h2>Analytics</h2>
+            <p>Review patterns in your own check-in history. These insights are for reflection and are not a medical diagnosis.</p>
+        </div>
+    </div>
+
+    {% if latest %}
+        <div class="analytics-summary">
+            <div class="analytics-stat">
+                <span>Current support level</span>
+                <strong class="badge-{{ latest.stress_level|lower }}">{{ latest.stress_level }}</strong>
+            </div>
+            <div class="analytics-stat">
+                <span>Check-ins completed</span>
+                <strong>{{ checkin_count }}</strong>
+            </div>
+            <div class="analytics-stat">
+                <span>Latest check-in</span>
+                <strong>{{ latest.created_at|date:"M d, Y" }}</strong>
+            </div>
+        </div>
+
+        <section class="analytics-section analytics-model-card">
+            <div class="analytics-model-card__header">
+                <div>
+                    <span class="eyebrow">Experimental estimate</span>
+                    <h3>Possible next support level</h3>
+                </div>
+                {% if model_prediction %}
+                    <strong class="badge-{{ model_prediction.label|lower }}">{{ model_prediction.label }}</strong>
+                {% endif %}
+            </div>
+            <p class="analytics-muted">
+                This is an offline research estimate based on your previous check-ins.
+                It is not a diagnosis, does not replace your official check-in result,
+                and does not trigger alerts.
+            </p>
+            {% if model_prediction %}
+                <div class="analytics-model-probabilities">
+                    {% for label, probability in model_prediction.percentage_probabilities.items %}
+                        <div class="analytics-model-probability">
+                            <div>
+                                <span>{{ label }}</span>
+                                <strong>{{ probability|floatformat:1 }}%</strong>
+                            </div>
+                            <div class="analytics-bar" role="progressbar" aria-valuenow="{{ probability }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ label }} estimate probability">
+                                <span style="width: {{ probability }}%"></span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <small class="analytics-model-warning">{{ model_prediction.warning }}</small>
+            {% elif model_unavailable %}
+                <p class="analytics-muted">The estimate is temporarily unavailable.</p>
+            {% else %}
+                <p class="analytics-muted">Complete at least two check-ins to see an experimental estimate.</p>
+            {% endif %}
+        </section>
+
+        <section class="analytics-section">
+            <h3>Latest factor breakdown</h3>
+            <p class="analytics-muted">Higher scores indicate more frequent or stronger signals in that area.</p>
+            <div class="analytics-factors">
+                {% for factor in factors %}
+                    <div class="analytics-factor">
+                        <div class="analytics-factor__label">
+                            <strong>{{ factor.label }}</strong>
+                            <span>{{ factor.score }} / {{ factor.maximum }}</span>
+                        </div>
+                        <div class="analytics-bar" role="progressbar" aria-valuenow="{{ factor.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ factor.label }} score">
+                            <span style="width: {{ factor.percent }}%"></span>
+                        </div>
+                        {% if factor.change is not None %}
+                            <small>
+                                {% if factor.change > 0 %}{{ factor.change }} higher{% elif factor.change < 0 %}{{ factor.change|stringformat:"d"|slice:"1:" }} lower{% else %}No change{% endif %}
+                                than your previous check-in
+                            </small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="analytics-section">
+            <h3>Support-level trend</h3>
+            <p class="analytics-muted">Your recent support levels, from oldest to newest.</p>
+            <div class="analytics-trend-list">
+                {% for result in results %}
+                    <div class="analytics-trend-item">
+                        <div class="analytics-trend-chart">
+                            <span class="analytics-trend-bar analytics-trend-bar--{{ result.stress_level|lower }}"></span>
+                        </div>
+                        <div class="analytics-trend-label">
+                            <span>{{ result.created_at|date:"M d, Y" }}</span>
+                            <strong class="badge-{{ result.stress_level|lower }}">{{ result.stress_level }}</strong>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% else %}
+        <div class="empty-state">
+            <h3>Your analytics will appear after your first check-in.</h3>
+            <p>Complete a check-in to start tracking your personal support-level and factor trends.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

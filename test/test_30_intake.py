@@ -66,7 +66,17 @@ class IntakeFlowTests(TestCase):
         response = self.client.get(reverse('intake:result'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<span class="result-badge">High</span>', html=True)
+        self.assertContains(response, '<span class="result-badge result-badge--high">High</span>', html=True)
+        self.assertContains(response, 'Request urgent help')
+
+    def test_result_page_uses_status_color_for_low_result_without_urgent_action(self):
+        create_result_for_student(self.student, stress_level='Low')
+        self.client.login(username='intakestudent', password='StrongPass123!')
+
+        response = self.client.get(reverse('intake:result'))
+
+        self.assertContains(response, '<span class="result-badge result-badge--low">Low</span>', html=True)
+        self.assertNotContains(response, 'Your result was flagged for prompt support follow-up.')
 
     def test_result_page_shows_model_signal_separately_from_survey_result(self):
         create_result_for_student(self.student, stress_level='Moderate')

@@ -46,7 +46,7 @@
         <div class="form-actions">
             <button class="btn btn-secondary" type="button" id="save-draft-btn">Save draft</button>
             <button class="btn btn-secondary" type="button" id="intake-back-btn">Back</button>
-            <button class="btn btn-primary" type="button" id="intake-next-btn">Next</button>
+            <button class="btn btn-primary" type="button" id="intake-next-btn" disabled>Next</button>
             <button class="btn btn-primary" type="submit" id="intake-submit-btn" hidden>Submit</button>
         </div>
     </form>
@@ -75,7 +75,11 @@
         progressBar.style.width = `${percent}%`;
         document.querySelector('.intake-progress__track').setAttribute('aria-valuenow', String(stepIndex + 1));
         backButton.hidden = stepIndex === 0;
-        nextButton.hidden = stepIndex === totalSteps - 1;
+        const isLastStep = stepIndex === totalSteps - 1;
+        nextButton.hidden = false;
+        nextButton.disabled = isLastStep;
+        nextButton.setAttribute('aria-disabled', String(isLastStep));
+        nextButton.classList.toggle('btn--disabled', isLastStep);
         submitButton.hidden = stepIndex !== totalSteps - 1;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -84,6 +88,9 @@
         updateStep(0);
         backButton.addEventListener('click', () => updateStep(Math.max(0, currentStep - 1)));
         nextButton.addEventListener('click', () => {
+            if (nextButton.disabled) {
+                return;
+            }
             const fields = intakeSections[currentStep].querySelectorAll('input, select, textarea');
             const valid = Array.from(fields).every((field) => field.reportValidity());
             if (valid) {

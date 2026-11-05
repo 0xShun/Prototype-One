@@ -12,7 +12,7 @@
     {% load static %}
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="apple-touch-icon" href="{% static 'logo.png' %}">
-    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20261110">
+    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20261118">
 </head>
 <body>
 <div class="app-shell-loading" aria-hidden="true">
@@ -47,14 +47,9 @@
                     <a href="{% url 'home' %}">Home</a>
                     <a href="{% url 'counselor:dashboard' %}">Student support</a>
                     <a href="{% url 'counselor:student_list' %}">Student list</a>
-                    <a href="{% url 'counselor:archive' %}">Archived results</a>
+                    {% comment %}<a href="{% url 'counselor:archive' %}">Archived results</a>{% endcomment %}
                     <a href="{% url 'counselor:teacher_approvals' %}">Teacher approvals</a>
-                    <details class="nav-dropdown">
-                        <summary>Support</summary>
-                        <div class="nav-dropdown__menu">
-                            <a href="{% url 'counselor:urgent_support' %}">Urgent support</a>
-                        </div>
-                    </details>
+                    <a href="{% url 'counselor:messages_home' %}">Messages</a>
                     <details class="nav-dropdown">
                         <summary>Notifications</summary>
                         <div class="nav-dropdown__menu">
@@ -98,8 +93,13 @@
                             <a href="{% url 'intake:result' %}">Latest result</a>
                         </div>
                     </details>
-                    <a href="{% url 'intake:history' %}">My progress</a>
-                    <a href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
+                    <details class="nav-dropdown">
+                        <summary>My Data</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'intake:history' %}">My progress</a>
+                            <a href="{% url 'intake:analytics' %}">Analytics</a>
+                        </div>
+                    </details>
                     <details class="nav-dropdown">
                         <summary>Appointments</summary>
                         <div class="nav-dropdown__menu">
@@ -110,9 +110,7 @@
                     <details class="nav-dropdown">
                         <summary>Support</summary>
                         <div class="nav-dropdown__menu">
-                            <a href="{% url 'counselor:contact_request' %}">Contact support</a>
-                            <a href="{% url 'counselor:general_chats' %}">General chats</a>
-                            <a href="{% url 'counselor:student_urgent_support' %}">Urgent support</a>
+                            <a href="{% url 'counselor:messages_home' %}">Messages</a>
                             <a href="{% url 'counselor:teacher_directory' %}">Teacher contacts</a>
                         </div>
                     </details>
@@ -138,7 +136,7 @@
 </header>
 <div class="page">
     <div class="shell">
-        {% if messages and '/message/' not in request.path and '/contact/' not in request.path %}
+        {% if messages and '/message/' not in request.path and '/messages/' not in request.path and '/contact/' not in request.path %}
             <div class="site-messages" role="status" aria-live="polite">
                 {% for message in messages %}
                     <div class="site-message site-message--{{ message.tags }}">{{ message }}</div>

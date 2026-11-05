@@ -44,6 +44,7 @@ class StudentContactRequest(models.Model):
 	status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
+	dashboard_reviewed_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		ordering = ['-created_at']
@@ -68,6 +69,22 @@ class ContactMessage(models.Model):
 
 	def __str__(self):
 		return f'{self.sender} message for {self.thread.student.username}'
+
+	@property
+	def is_system(self):
+		return self.sender == self.Sender.SYSTEM
+
+	@property
+	def system_style(self):
+		if not self.is_system:
+			return ''
+		if 'marked this conversation as urgent' in self.body:
+			return 'chat-bubble--urgent'
+		if 'booked an appointment for' in self.body:
+			return 'chat-bubble--appointment'
+		if 'check-in result is high' in self.body or 'flagged this check-in' in self.body:
+			return 'chat-bubble--high-alert'
+		return 'chat-bubble--system'
 
 
 class TeacherReferral(models.Model):

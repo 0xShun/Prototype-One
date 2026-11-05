@@ -12,8 +12,8 @@
             </div>
             <div class="chat-room__messages" id="chat-messages">
                 {% for message in chat.messages.all %}
-                    <div class="chat-row {% if message.sender == 'Student' %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
-                        <div class="chat-bubble">
+                    <div class="chat-row {% if message.is_system %}chat-row--system{% elif message.sender == 'Student' %}chat-row--outgoing{% else %}chat-row--incoming{% endif %}">
+                        <div class="chat-bubble{% if message.is_system %} chat-bubble--system {{ message.system_style }}{% endif %}">
                             <div class="chat-bubble__meta">
                                 <span>{{ message.sender }}</span>
                                 <time>{{ message.created_at|date:"M d, Y g:i A" }}</time>

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card support-page">
+    <h2>Messages</h2>
+    <p>Choose someone to start or continue a private conversation.</p>
+    <form method="get" class="message-search-form">
+        <label for="message-search">Search by {% if is_counselor %}student{% else %}counselor{% endif %} name</label>
+        <div class="message-search-form__controls">
+            <input id="message-search" type="search" name="q" value="{{ search_query }}" placeholder="Search name or username">
+            <button class="btn btn-secondary" type="submit">Search</button>
+            {% if search_query %}<a class="btn btn-secondary" href="{% url 'counselor:messages_home' %}">Clear</a>{% endif %}
+        </div>
+    </form>
+    {% if message_participants %}
+        <div class="chat-thread-list">
+            {% for participant in message_participants %}
+                {% if is_counselor %}
+                    <a class="chat-thread-card" href="{% url 'counselor:counselor_conversation' participant.person.id %}">
+                {% else %}
+                    <a class="chat-thread-card" href="{% url 'counselor:student_conversation' participant.person.id %}">
+                {% endif %}
+                    <div class="chat-thread-card__avatar">{{ participant.person.username|slice:':1'|upper }}</div>
+                    <div class="chat-thread-card__content">
+                        <div class="chat-thread-card__top">
+                            <strong>{{ participant.person.get_full_name|default:participant.person.username }}</strong>
+                            {% if participant.conversation %}<span>{{ participant.conversation.updated_at|date:"M d, Y g:i A" }}</span>{% else %}<span>New</span>{% endif %}
+                        </div>
+                        <div class="chat-thread-card__meta">
+                            {% if participant.conversation %}
+                                <p>{{ participant.conversation.messages.last.body|truncatewords:18 }}</p>
+                                <span class="chat-thread-card__badge{% if participant.conversation.priority != 'Urgent' %} chat-thread-card__badge--muted{% endif %}">{% if participant.conversation.priority == 'Urgent' %}Urgent{% else %}{{ participant.conversation.status }}{% endif %}</span>
+                            {% else %}
+                                <p>No messages yet.</p>
+                                <span class="chat-thread-card__badge chat-thread-card__badge--muted">New</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No conversations available.</p>
+    {% endif %}
+</div>
+{% endblock %}

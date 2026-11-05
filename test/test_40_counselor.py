@@ -419,7 +419,7 @@ class CounselorAccessTests(TestCase):
 
         self.assertContains(response, teacher.studentprofile.phone_number)
         self.assertNotContains(response, pending.studentprofile.phone_number)
-        self.assertContains(response, f'tel:{teacher.studentprofile.phone_number}')
+        self.assertNotContains(response, f'tel:{teacher.studentprofile.phone_number}')
 
     def test_approved_teacher_can_open_counselor_directory(self):
         teacher = self.make_approved_teacher()
@@ -456,7 +456,10 @@ class CounselorAccessTests(TestCase):
         slot_start = timezone.make_aware(datetime.combine(appointment_date, time(13, 0)))
         self.client.login(username='highstudent', password='StrongPass123!')
 
-        calendar_response = self.client.get(reverse('counselor:appointment_calendar'))
+        calendar_response = self.client.get(
+            reverse('counselor:appointment_calendar'),
+            {'counselor_id': self.counselor.id},
+        )
         self.assertContains(calendar_response, '1:00 PM to 2:00 PM')
         booking_response = self.client.post(reverse('counselor:book_appointment'), {
             'availability_id': rule.id,
@@ -465,6 +468,17 @@ class CounselorAccessTests(TestCase):
         self.assertEqual(booking_response.status_code, 302)
         booking = AppointmentBooking.objects.get(student=self.high_student)
         self.assertEqual(booking.ends_at - booking.starts_at, timedelta(hours=1))
+        conversation = StudentContactRequest.objects.get(
+            student=self.high_student,
+            assigned_counselor=self.counselor,
+        )
+        appointment_message = conversation.messages.get(
+            sender=ContactMessage.Sender.SYSTEM,
+            body__contains='booked an appointment for',
+        )
+        self.assertIn('highstudent', appointment_message.body)
+        self.assertIn('booked an appointment for', appointment_message.body)
+        self.assertIn('01:00 PM to 02:00 PM', appointment_message.body)
 
         self.client.login(username='modstudent', password='StrongPass123!')
         taken_response = self.client.post(reverse('counselor:book_appointment'), {
