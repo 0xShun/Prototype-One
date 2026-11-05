@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.messages import get_messages
 from django.http import HttpResponseForbidden
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
@@ -155,6 +156,104 @@ def dashboard(request):
 
 
 @counselor_required
+def teacher_approvals(request):
+    if request.method == 'POST':
+        teacher = get_object_or_404(
+            get_user_model().objects.filter(studentprofile__is_teacher=True),
+            id=request.POST.get('teacher_id'),
+        )
+        status = request.POST.get('status')
+        if status not in {'active', 'disabled'}:
+            messages.error(request, 'Choose a valid teacher status.')
+        else:
+            teacher.studentprofile.is_teacher_approved = status == 'active'
+            teacher.studentprofile.save(update_fields=['is_teacher_approved'])
+            messages.success(request, f'{teacher.username} is now {status}.')
+        return redirect('counselor:teacher_approvals')
+
+    teachers = get_user_model().objects.filter(
+        studentprofile__is_teacher=True,
+    ).select_related('studentprofile').order_by('username')
+    return render(request, 'counselor/teacher_approvals.html', {'teachers': teachers})
+
+
+@counselor_required
+def student_list(request):
+    students = (
+        StudentProfile.objects.filter(is_counselor=False, is_teacher=False)
+        .select_related('user')
+        .annotate(
+            referral_count=Count('user__teacher_referrals'),
+            message_count=Count('user__contact_requests'),
+        )
+        .order_by('user__last_name', 'user__first_name', 'user__username')
+    )
+    return render(request, 'counselor/student_list.html', {'students': students})
+
+
+@counselor_required
+def student_message(request, user_id):
+    student = get_object_or_404(
+        get_user_model().objects.filter(
+            studentprofile__is_counselor=False,
+            studentprofile__is_teacher=False,
+        ).select_related('studentprofile'),
+        id=user_id,
+    )
+    contact_request = (
+        StudentContactRequest.objects.filter(
+            student=student,
+            assigned_counselor=request.user,
+            is_general_chat=True,
+            status__in=[
+                StudentContactRequest.Status.OPEN,
+                StudentContactRequest.Status.IN_PROGRESS,
+            ],
+        )
+        .prefetch_related('messages')
+        .first()
+    )
+    if contact_request is None:
+        contact_request = StudentContactRequest.objects.create(
+            student=student,
+            assigned_counselor=request.user,
+            initiated_by_system=True,
+            is_general_chat=True,
+            message='A counselor started this conversation.',
+            status=StudentContactRequest.Status.IN_PROGRESS,
+        )
+        ContactMessage.objects.create(
+            thread=contact_request,
+            sender=ContactMessage.Sender.SYSTEM,
+            body=contact_request.message,
+        )
+
+    if request.method == 'POST':
+        form = ContactMessageForm(request.POST)
+        if form.is_valid():
+            ContactMessage.objects.create(
+                thread=contact_request,
+                sender=ContactMessage.Sender.COUNSELOR,
+                body=form.cleaned_data['body'],
+            )
+            contact_request.status = StudentContactRequest.Status.IN_PROGRESS
+            contact_request.replied_by = request.user
+            contact_request.replied_at = timezone.now()
+            contact_request.save(update_fields=['status', 'replied_by', 'replied_at', 'updated_at'])
+            return redirect('counselor:student_message', user_id=student.id)
+    else:
+        form = ContactMessageForm()
+
+    list(get_messages(request))
+    return render(request, 'counselor/student_message.html', {
+        'student': student,
+        'contact_request': contact_request,
+        'messages': contact_request.messages.all(),
+        'form': form,
+    })
+
+
+@counselor_required
 def contact_request_detail(request, request_id):
     contact_request = get_object_or_404(StudentContactRequest.objects.select_related('student', 'replied_by'), id=request_id)
     if contact_request.assigned_counselor_id and contact_request.assigned_counselor_id != request.user.id:
@@ -179,6 +278,7 @@ def contact_request_detail(request, request_id):
     else:
         form = ContactMessageForm()
 
+    list(get_messages(request))
     return render(request, 'counselor/contact_request_detail.html', {
         'contact_request': contact_request,
         'messages': thread_messages,
@@ -345,12 +445,83 @@ def contact_request(request):
     else:
         form = StudentContactRequestForm()
 
-    requests = StudentContactRequest.objects.filter(student=request.user).select_related('assigned_counselor').prefetch_related('messages')
+    list(get_messages(request))
+    requests = StudentContactRequest.objects.filter(
+        student=request.user,
+        is_general_chat=False,
+    ).select_related('assigned_counselor').prefetch_related('messages')
     active_request = requests.filter(id=request.GET.get('request_id')).first() if request.GET.get('request_id') else requests.first()
     return render(request, 'counselor/contact_request.html', {
         'form': form,
         'requests': requests,
         'active_request': active_request,
+    })
+
+
+@login_required
+def general_chats(request):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and (profile.is_counselor or profile.is_teacher):
+        return HttpResponseForbidden('Only student accounts can use general chats.')
+
+    counselors = get_user_model().objects.filter(
+        studentprofile__is_counselor=True,
+    ).select_related('studentprofile').order_by('last_name', 'first_name', 'username')
+    if request.method == 'POST':
+        counselor_id = request.POST.get('counselor_id')
+        counselor = get_object_or_404(counselors, id=counselor_id)
+        chat = StudentContactRequest.objects.create(
+            student=request.user,
+            assigned_counselor=counselor,
+            initiated_by_system=False,
+            is_general_chat=True,
+            message='A student started this general conversation.',
+            status=StudentContactRequest.Status.OPEN,
+        )
+        ContactMessage.objects.create(
+            thread=chat,
+            sender=ContactMessage.Sender.STUDENT,
+            body=chat.message,
+        )
+        return redirect('counselor:general_chat', chat_id=chat.id)
+
+    chats = StudentContactRequest.objects.filter(
+        student=request.user,
+        is_general_chat=True,
+    ).select_related('assigned_counselor').prefetch_related('messages')
+    return render(request, 'counselor/general_chats.html', {
+        'chats': chats,
+        'counselors': counselors,
+    })
+
+
+@login_required
+def general_chat(request, chat_id):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and (profile.is_counselor or profile.is_teacher):
+        return HttpResponseForbidden('Only student accounts can use general chats.')
+    chat = get_object_or_404(
+        StudentContactRequest.objects.select_related('assigned_counselor').prefetch_related('messages'),
+        id=chat_id,
+        student=request.user,
+        is_general_chat=True,
+    )
+    if request.method == 'POST':
+        form = StudentContactReplyForm(request.POST)
+        if form.is_valid():
+            ContactMessage.objects.create(
+                thread=chat,
+                sender=ContactMessage.Sender.STUDENT,
+                body=form.cleaned_data['message'],
+            )
+            chat.status = StudentContactRequest.Status.OPEN
+            chat.save(update_fields=['status', 'updated_at'])
+            return redirect('counselor:general_chat', chat_id=chat.id)
+    else:
+        form = StudentContactReplyForm()
+    return render(request, 'counselor/general_chat.html', {
+        'chat': chat,
+        'form': form,
     })
 
 
@@ -504,10 +675,14 @@ def counselor_availability(request):
     unavailable_form = CounselorUnavailableTimeForm(request.POST or None, prefix='unavailable')
     if request.method == 'POST' and 'save_availability' in request.POST and availability_form.is_valid():
         rule = availability_form.save(commit=False)
-        rule.counselor = request.user
-        rule.save()
-        messages.success(request, 'Recurring availability saved.')
-        return redirect('counselor:availability')
+        if rule.effective_from <= timezone.localdate():
+            availability_form.add_error('effective_from', 'Choose a future calendar date.')
+        else:
+            rule.effective_until = rule.effective_from
+            rule.counselor = request.user
+            rule.save()
+            messages.success(request, 'One-time availability saved.')
+            return redirect('counselor:availability')
     if request.method == 'POST' and 'save_unavailable' in request.POST and unavailable_form.is_valid():
         period = unavailable_form.save(commit=False)
         period.counselor = request.user
@@ -520,12 +695,79 @@ def counselor_availability(request):
             period.save()
             messages.success(request, 'Unavailable time saved.')
             return redirect('counselor:availability')
+    today = timezone.localdate()
+    calendar_start = today - timedelta(days=today.weekday())
+    calendar_days = []
+    rules = list(CounselorAvailability.objects.filter(counselor=request.user, is_active=True))
+    unavailable_periods = list(
+        CounselorUnavailableTime.objects.filter(
+            counselor=request.user,
+            ends_at__gte=timezone.now(),
+        )
+    )
+    bookings = list(
+        AppointmentBooking.objects.filter(
+            counselor=request.user,
+            status=AppointmentBooking.Status.BOOKED,
+            ends_at__gte=timezone.now(),
+        ).select_related('student').order_by('starts_at')
+    )
+
+    for day_offset in range(35):
+        day = calendar_start + timedelta(days=day_offset)
+        events = []
+        for period in unavailable_periods:
+            period_start = timezone.localtime(period.starts_at)
+            period_end = timezone.localtime(period.ends_at)
+            if period_start.date() <= day <= period_end.date():
+                events.append({
+                    'kind': 'unavailable',
+                    'label': f'{period_start.strftime("%I:%M %p").lstrip("0")} to {period_end.strftime("%I:%M %p").lstrip("0")}',
+                    'detail': period.reason or 'Unavailable',
+                })
+        for booking in bookings:
+            booking_start = timezone.localtime(booking.starts_at)
+            booking_end = timezone.localtime(booking.ends_at)
+            if booking_start.date() == day:
+                events.append({
+                    'kind': 'booked',
+                    'label': f'{booking_start.strftime("%I:%M %p").lstrip("0")} to {booking_end.strftime("%I:%M %p").lstrip("0")}',
+                    'detail': booking.student.get_full_name() or booking.student.username,
+                })
+        for rule in rules:
+            if day.weekday() != rule.weekday:
+                continue
+            if day < rule.effective_from or (rule.effective_until and day > rule.effective_until):
+                continue
+            starts_at = timezone.make_aware(datetime.combine(day, rule.start_time), timezone.get_current_timezone())
+            ends_at = timezone.make_aware(datetime.combine(day, rule.end_time), timezone.get_current_timezone())
+            if starts_at <= timezone.now():
+                continue
+            if any(period.starts_at < ends_at and period.ends_at > starts_at for period in unavailable_periods):
+                continue
+            if any(booking.starts_at < ends_at and booking.ends_at > starts_at for booking in bookings):
+                continue
+            events.append({
+                'kind': 'available',
+                'label': f'{rule.start_time.strftime("%I:%M %p").lstrip("0")} to {rule.end_time.strftime("%I:%M %p").lstrip("0")}',
+                'detail': 'Available',
+            })
+        events.sort(key=lambda event: event['label'])
+        calendar_days.append({
+            'date': day,
+            'is_today': day == today,
+            'is_past': day < today,
+            'is_selectable': day > today,
+            'events': events,
+        })
+
     return render(request, 'counselor/availability.html', {
         'availability_form': availability_form,
         'unavailable_form': unavailable_form,
-        'rules': CounselorAvailability.objects.filter(counselor=request.user, is_active=True),
-        'unavailable_periods': CounselorUnavailableTime.objects.filter(counselor=request.user, ends_at__gte=timezone.now()),
-        'bookings': AppointmentBooking.objects.filter(counselor=request.user, status=AppointmentBooking.Status.BOOKED, starts_at__gte=timezone.now()).select_related('student').order_by('starts_at'),
+        'rules': rules,
+        'unavailable_periods': unavailable_periods,
+        'bookings': [booking for booking in bookings if booking.starts_at >= timezone.now()],
+        'calendar_days': calendar_days,
     })
 
 
@@ -555,8 +797,61 @@ def appointment_calendar(request):
     profile = getattr(request.user, 'studentprofile', None)
     if profile and (profile.is_counselor or profile.is_teacher):
         return HttpResponseForbidden('Student appointment booking is available to student accounts.')
-    first_day = timezone.localdate() + timedelta(days=1)
-    return render(request, 'counselor/appointment_calendar.html', {'slots': _available_slots(first_day, days=30)})
+    counselors = get_user_model().objects.filter(
+        studentprofile__is_counselor=True,
+    ).select_related('studentprofile').order_by('last_name', 'first_name', 'username')
+    selected_id = request.GET.get('counselor_id') or (str(counselors.first().id) if counselors.exists() else '')
+    selected_counselor = counselors.filter(id=selected_id).first() if selected_id else None
+    calendar_days = _appointment_calendar_days(selected_counselor)
+    return render(request, 'counselor/appointment_calendar.html', {
+        'counselors': counselors,
+        'selected_counselor': selected_counselor,
+        'calendar_days': calendar_days,
+        'today': timezone.localdate(),
+    })
+
+
+def _appointment_calendar_days(counselor):
+    today = timezone.localdate()
+    calendar_start = today - timedelta(days=today.weekday())
+    days = [{'date': calendar_start + timedelta(days=offset), 'slots': []} for offset in range(35)]
+    if not counselor:
+        return days
+
+    rules = CounselorAvailability.objects.filter(
+        counselor=counselor,
+        is_active=True,
+    )
+    bookings = AppointmentBooking.objects.filter(
+        counselor=counselor,
+        status=AppointmentBooking.Status.BOOKED,
+        ends_at__gte=timezone.now(),
+    )
+    unavailable_periods = CounselorUnavailableTime.objects.filter(
+        counselor=counselor,
+        ends_at__gte=timezone.now(),
+    )
+    now = timezone.now()
+    for day in days:
+        date_value = day['date']
+        if date_value <= today:
+            continue
+        for rule in rules.filter(weekday=date_value.weekday()):
+            if date_value < rule.effective_from or (rule.effective_until and date_value > rule.effective_until):
+                continue
+            starts_at = timezone.make_aware(datetime.combine(date_value, rule.start_time), timezone.get_current_timezone())
+            ends_at = timezone.make_aware(datetime.combine(date_value, rule.end_time), timezone.get_current_timezone())
+            if starts_at <= now:
+                continue
+            booking = bookings.filter(starts_at__lt=ends_at, ends_at__gt=starts_at).first()
+            unavailable = unavailable_periods.filter(starts_at__lt=ends_at, ends_at__gt=starts_at).exists()
+            day['slots'].append({
+                'availability': rule,
+                'starts_at': starts_at,
+                'ends_at': ends_at,
+                'status': 'booked' if booking else ('unavailable' if unavailable else 'available'),
+            })
+    return days
 
 
 @login_required

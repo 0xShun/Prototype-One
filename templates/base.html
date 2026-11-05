@@ -12,7 +12,7 @@
     {% load static %}
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="apple-touch-icon" href="{% static 'logo.png' %}">
-    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20260808">
+    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20261110">
 </head>
 <body>
 <div class="app-shell-loading" aria-hidden="true">
@@ -23,12 +23,10 @@
 <div class="refresh-prompt" id="refresh-prompt" role="status" aria-live="polite" hidden>
     <span>Refresh</span>
     <button type="button" class="refresh-prompt__button" id="refresh-app-button">Update available</button>
-    <button type="button" class="prompt-dismiss-button" id="dismiss-refresh-prompt" aria-label="Close update available message">&times;</button>
 </div>
-<div class="install-banner" id="install-banner" role="status" aria-live="polite" hidden>
+<div class="install-banner" role="status" aria-live="polite">
     <span>Install App</span>
-    <button type="button" class="install-banner__button" id="install-app-button">Install App</button>
-    <button type="button" class="prompt-dismiss-button" id="dismiss-install-banner" aria-label="Close install app message">&times;</button>
+    <button type="button" class="install-banner__button">Install App</button>
 </div>
 {% endcomment %}
 <header class="app-shell-header">
@@ -48,10 +46,22 @@
                 {% if user.studentprofile.is_counselor %}
                     <a href="{% url 'home' %}">Home</a>
                     <a href="{% url 'counselor:dashboard' %}">Student support</a>
+                    <a href="{% url 'counselor:student_list' %}">Student list</a>
                     <a href="{% url 'counselor:archive' %}">Archived results</a>
-                    <a href="{% url 'notifications' %}">Notifications</a>
-                    <a href="{% url 'notification_settings' %}">Notification settings</a>
-                    <a href="{% url 'counselor:availability' %}">Appointments and availability</a>
+                    <a href="{% url 'counselor:teacher_approvals' %}">Teacher approvals</a>
+                    <details class="nav-dropdown">
+                        <summary>Notifications</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'notifications' %}">Notifications</a>
+                            <a href="{% url 'notification_settings' %}">Notification settings</a>
+                        </div>
+                    </details>
+                    <details class="nav-dropdown">
+                        <summary>Appointments</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'counselor:availability' %}">Appointments and availability</a>
+                        </div>
+                    </details>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
@@ -62,24 +72,50 @@
                         <a href="{% url 'counselor:teacher_referral' %}">Refer a student</a>
                         <a href="{% url 'counselor:teacher_directory' %}">Counselor contacts</a>
                     {% endif %}
-                    <a href="{% url 'notifications' %}">Notifications</a>
-                    <a href="{% url 'notification_settings' %}">Notification settings</a>
+                    <details class="nav-dropdown">
+                        <summary>Notifications</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'notifications' %}">Notifications</a>
+                            <a href="{% url 'notification_settings' %}">Notification settings</a>
+                        </div>
+                    </details>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
                     </form>
                 {% else %}
                     <a href="{% url 'home' %}">Home</a>
-                    <a href="{% url 'intake:create' %}">New check-in</a>
-                    <a href="{% url 'intake:result' %}">Latest result</a>
+                    <details class="nav-dropdown">
+                        <summary>Check-in</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'intake:create' %}">New check-in</a>
+                            <a href="{% url 'intake:result' %}">Latest result</a>
+                        </div>
+                    </details>
                     <a href="{% url 'intake:history' %}">My progress</a>
-                    <a href="{% url 'counselor:contact_request' %}">Contact support</a>
                     <a href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
-                    <a href="{% url 'counselor:appointment_calendar' %}">Book an appointment</a>
-                    <a href="{% url 'counselor:student_appointments' %}">My appointments</a>
-                    <a href="{% url 'counselor:teacher_directory' %}">Teacher contacts</a>
-                    <a href="{% url 'notifications' %}">Notifications</a>
-                    <a href="{% url 'notification_settings' %}">Notification settings</a>
+                    <details class="nav-dropdown">
+                        <summary>Appointments</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'counselor:appointment_calendar' %}">Book an appointment</a>
+                            <a href="{% url 'counselor:student_appointments' %}">My appointments</a>
+                        </div>
+                    </details>
+                    <details class="nav-dropdown">
+                        <summary>Support</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'counselor:contact_request' %}">Contact support</a>
+                            <a href="{% url 'counselor:general_chats' %}">General chats</a>
+                            <a href="{% url 'counselor:teacher_directory' %}">Teacher contacts</a>
+                        </div>
+                    </details>
+                    <details class="nav-dropdown">
+                        <summary>Notifications</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'notifications' %}">Notifications</a>
+                            <a href="{% url 'notification_settings' %}">Notification settings</a>
+                        </div>
+                    </details>
                     <form class="logout-form" method="post" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button class="nav-button" type="submit">Logout</button>
@@ -95,7 +131,7 @@
 </header>
 <div class="page">
     <div class="shell">
-        {% if messages %}
+        {% if messages and '/message/' not in request.path and '/contact/' not in request.path %}
             <div class="site-messages" role="status" aria-live="polite">
                 {% for message in messages %}
                     <div class="site-message site-message--{{ message.tags }}">{{ message }}</div>
@@ -120,45 +156,8 @@
     let waitingRegistration = null;
     const refreshPrompt = document.getElementById('refresh-prompt');
     const refreshButton = document.getElementById('refresh-app-button');
-    const dismissRefreshPrompt = document.getElementById('dismiss-refresh-prompt');
-    const installBanner = document.getElementById('install-banner');
-    const installButton = document.getElementById('install-app-button');
-    const dismissInstallBanner = document.getElementById('dismiss-install-banner');
     const navToggle = document.getElementById('nav-toggle');
     const primaryNavigation = document.getElementById('primary-navigation');
-    let deferredInstallPrompt = null;
-
-    function isInstalled() {
-        return window.matchMedia('(display-mode: standalone)').matches
-            || window.navigator.standalone === true;
-    }
-
-    function showInstallPrompt() {
-        if (installBanner && !isInstalled()) {
-            installBanner.hidden = false;
-        }
-    }
-
-    function hideInstallPrompt() {
-        if (installBanner) {
-            installBanner.hidden = true;
-        }
-    }
-
-    window.addEventListener('beforeinstallprompt', (event) => {
-        event.preventDefault();
-        deferredInstallPrompt = event;
-        showInstallPrompt();
-    });
-
-    window.addEventListener('appinstalled', () => {
-        deferredInstallPrompt = null;
-        hideInstallPrompt();
-    });
-
-    if (isInstalled()) {
-        hideInstallPrompt();
-    }
 
     function showRefreshPrompt(registration) {
         waitingRegistration = registration;
@@ -213,33 +212,6 @@
             }
             window.location.reload();
         });
-    }
-
-    if (dismissRefreshPrompt) {
-        dismissRefreshPrompt.addEventListener('click', () => {
-            if (refreshPrompt) {
-                refreshPrompt.hidden = true;
-            }
-        });
-    }
-
-    if (installButton) {
-        installButton.addEventListener('click', async () => {
-            if (!deferredInstallPrompt) {
-                return;
-            }
-
-            deferredInstallPrompt.prompt();
-            const choice = await deferredInstallPrompt.userChoice;
-            deferredInstallPrompt = null;
-            if (choice.outcome === 'accepted') {
-                hideInstallPrompt();
-            }
-        });
-    }
-
-    if (dismissInstallBanner) {
-        dismissInstallBanner.addEventListener('click', hideInstallPrompt);
     }
 
     if (navToggle && primaryNavigation) {

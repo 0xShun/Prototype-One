@@ -40,7 +40,9 @@
                         </form>
                     </div>
             {% else %}
-                <div class="chat-room__messages chat-room__messages--empty" id="chat-messages"></div>
+                <div class="chat-room__messages chat-room__messages--empty" id="chat-messages">
+                    <p>Select a support request below to open its chat.</p>
+                </div>
             {% endif %}
 
             <div class="chat-room__composer">
@@ -49,12 +51,15 @@
                         {% for request in requests %}
                             <a class="chat-thread-card" href="{% url 'counselor:contact_request' %}?request_id={{ request.id }}">
                                 <div class="chat-thread-card__content">
-                                    <strong>{{ request.status }}</strong>
-                                    {% if request.assigned_counselor %}<p>Assigned to {{ request.assigned_counselor.first_name|default:request.assigned_counselor.username }}</p>{% endif %}
+                                    <strong>Request from {{ request.created_at|date:"M d, Y g:i A" }}</strong>
+                                    <p>{{ request.message|truncatewords:14 }}</p>
+                                    <p>{{ request.status }}{% if request.assigned_counselor %} · {{ request.assigned_counselor.first_name|default:request.assigned_counselor.username }}{% endif %}</p>
                                 </div>
                             </a>
                         {% endfor %}
                     </div>
+                {% else %}
+                    <p>No support requests yet.</p>
                 {% endif %}
                 <form method="post" class="chat-composer">
                     {% csrf_token %}

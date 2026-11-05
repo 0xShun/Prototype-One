@@ -44,7 +44,7 @@ def register_teacher(request):
         form = TeacherRegistrationForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.info(request, 'Your teacher account is awaiting administrator approval. You can sign in after it is approved.')
+            messages.info(request, 'Your teacher account is disabled until a counselor activates it. You can sign in after it is activated.')
             return redirect('login')
     else:
         form = TeacherRegistrationForm()

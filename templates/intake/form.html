@@ -16,12 +16,6 @@
             <p>{{ checkin_standard_note }}</p>
         </div>
     {% endif %}
-    {% if checkin_prompt %}
-        <div class="soft-reminder">
-            <strong>Check-in note</strong>
-            <p>{{ checkin_prompt }}</p>
-        </div>
-    {% endif %}
     <form method="post" id="intake-form" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="intake-progress" aria-live="polite">
@@ -40,12 +34,6 @@
             </div>
             {% endfor %}
             {% if forloop.last %}
-            <div class="intake-field">
-                {{ form.supporting_file.label_tag }}
-                {{ form.supporting_file }}
-                <div class="helptext">Optional. Upload a PDF, DOC, DOCX, TXT, JPG, or PNG file up to 50 MB if it will help explain your check-in.</div>
-                {{ form.supporting_file.errors }}
-            </div>
             <div class="intake-field">
                 {{ form.presenting_concern.label_tag }}
                 {{ form.presenting_concern }}

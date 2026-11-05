@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card">
+    <h2>General chats</h2>
+    <p>These conversations are separate from support requests.</p>
+    {% if chats %}
+        <div class="chat-thread-list">
+            {% for chat in chats %}
+                <a class="chat-thread-card" href="{% url 'counselor:general_chat' chat.id %}">
+                    <div class="chat-thread-card__content">
+                        <strong>{{ chat.assigned_counselor.get_full_name|default:chat.assigned_counselor.username }}</strong>
+                        <p>{{ chat.messages.last.body|truncatewords:16 }}</p>
+                        <p>{{ chat.status }} · Updated {{ chat.updated_at|date:"M d, Y g:i A" }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No general chats yet.</p>
+    {% endif %}
+
+    {% if counselors %}
+        <h3>Start a general chat</h3>
+        <form method="post" class="chat-composer">
+            {% csrf_token %}
+            <label for="counselor-id">Counselor</label>
+            <select id="counselor-id" name="counselor_id" required>
+                <option value="">Choose a counselor</option>
+                {% for counselor in counselors %}
+                    <option value="{{ counselor.id }}">{{ counselor.get_full_name|default:counselor.username }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary" type="submit">Start chat</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

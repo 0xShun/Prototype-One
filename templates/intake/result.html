@@ -3,7 +3,14 @@
 <div class="form-card">
     <h2>Your latest result</h2>
     {% if result %}
-        <span class="result-badge">{{ result.stress_level }}</span>
+        <span class="result-badge result-badge--{{ result.stress_level|lower }}">{{ result.stress_level }}</span>
+        {% if result.stress_level == 'High' %}
+            <div class="result-alert">
+                <strong>Your result was flagged for prompt support follow-up.</strong>
+                <p>The counseling team was notified. If you would like help now, you can send an urgent request.</p>
+                <a class="btn btn-primary" href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
+            </div>
+        {% endif %}
         <div>
             <h3>Summary</h3>
             <p>{{ result.summary }}</p>
@@ -21,8 +28,7 @@
         <div class="result-model-panel">
             <h3>Initial model support signal</h3>
             {% if model_prediction %}
-                <span class="result-badge">{{ model_prediction.label }}</span>
-                <p>This initial model signal was trained using generated response patterns based on the approved survey structure. It does not replace your check-in result and requires further counselor-reviewed validation.</p>
+                <span class="result-badge result-badge--{{ model_prediction.label|lower }}">{{ model_prediction.label }}</span>
                 {% if model_prediction.probabilities %}
                     <ul class="list-stack">
                         {% for label, probability in model_prediction.probabilities.items %}

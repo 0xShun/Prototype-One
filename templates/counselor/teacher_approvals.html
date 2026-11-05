@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card teacher-approvals-page">
+    <h2>Teacher approvals</h2>
+    <p>Activate teacher accounts to grant access to teacher tools. New teacher registrations start disabled.</p>
+    {% if teachers %}
+        <div class="table-wrap">
+            <table class="approval-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Username</th>
+                        <th scope="col">First name</th>
+                        <th scope="col">Last name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for teacher in teachers %}
+                        <tr>
+                            <td data-label="Username">{{ teacher.username }}</td>
+                            <td data-label="First name">{{ teacher.first_name|default:"-" }}</td>
+                            <td data-label="Last name">{{ teacher.last_name|default:"-" }}</td>
+                            <td data-label="Email">{{ teacher.email|default:"-" }}</td>
+                            <td data-label="Status">
+                                <form method="post" class="teacher-status-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="teacher_id" value="{{ teacher.id }}">
+                                    <select name="status" aria-label="Status for {{ teacher.username }}" onchange="this.form.submit()">
+                                        <option value="active" {% if teacher.studentprofile.is_teacher_approved %}selected{% endif %}>Active</option>
+                                        <option value="disabled" {% if not teacher.studentprofile.is_teacher_approved %}selected{% endif %}>Disabled</option>
+                                    </select>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No teacher accounts have been registered.</p>
+    {% endif %}
+</div>
+{% endblock %}

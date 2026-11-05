@@ -1,59 +1,122 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="form-card">
+<div class="form-card schedule-page">
     <h2>Appointments and availability</h2>
-    <p>Create recurring weekly time slots. Students book the complete slot shown in their calendar.</p>
-    <form method="post" class="schedule-form">
-        {% csrf_token %}
-        {{ availability_form.as_p }}
-        <button class="btn btn-primary" type="submit" name="save_availability">Add recurring time</button>
-    </form>
-    <h3>Your recurring times</h3>
-    {% if rules %}
-        <ul class="list-stack">
-            {% for rule in rules %}
-                <li>{{ rule.get_weekday_display }}, {{ rule.start_time|time:"g:i A" }} to {{ rule.end_time|time:"g:i A" }}, from {{ rule.effective_from }}{% if rule.effective_until %} until {{ rule.effective_until }}{% endif %}
-                    <form method="post" action="{% url 'counselor:deactivate_availability' rule.id %}">
-                        {% csrf_token %}
-                        <button class="btn btn-secondary" type="submit">Stop offering this time</button>
-                    </form>
-                </li>
+    <p>Select a future day to add a one-time appointment slot. Students book the complete slot shown in their calendar.</p>
+    <section class="schedule-calendar" aria-labelledby="schedule-calendar-title">
+        <div class="schedule-calendar__header">
+            <div>
+                <h3 id="schedule-calendar-title">Your schedule</h3>
+                <p>Review upcoming availability, booked appointments, and unavailable periods.</p>
+            </div>
+            <div class="schedule-calendar__legend" aria-label="Calendar legend">
+                <span><i class="schedule-dot schedule-dot--available"></i>Available</span>
+                <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
+                <span><i class="schedule-dot schedule-dot--unavailable"></i>Unavailable</span>
+            </div>
+        </div>
+        <div class="schedule-calendar__weekdays" aria-hidden="true">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="schedule-calendar__grid">
+            {% for day in calendar_days %}
+                <article class="schedule-day{% if day.is_today %} schedule-day--today{% endif %}{% if day.is_past %} schedule-day--past{% endif %}">
+                    <header>
+                        <span>{{ day.date|date:"D" }}</span>
+                        {% if not day.is_selectable %}
+                            <strong>{{ day.date|date:"j" }}</strong>
+                        {% else %}
+                            <button class="schedule-day__add" type="button" data-date="{{ day.date|date:'Y-m-d' }}" aria-label="Add availability on {{ day.date|date:'F j, Y' }}">+</button>
+                        {% endif %}
+                    </header>
+                    {% if day.events %}
+                        <div class="schedule-day__events">
+                            {% for event in day.events %}
+                                <div class="schedule-event schedule-event--{{ event.kind }}">
+                                    <strong>{{ event.label }}</strong>
+                                    <span>{{ event.detail }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="schedule-day__empty">No events</span>
+                    {% endif %}
+                </article>
             {% endfor %}
-        </ul>
-    {% else %}
-        <p>No recurring appointment times have been set.</p>
-    {% endif %}
-    <h3>Mark unavailable</h3>
-    <p>Add a date and time that should be removed from your recurring slots. A period overlapping an existing booking cannot be saved.</p>
-    <form method="post" class="schedule-form">
-        {% csrf_token %}
-        {{ unavailable_form.as_p }}
-        <button class="btn btn-secondary" type="submit" name="save_unavailable">Add unavailable time</button>
-    </form>
-    <h3>Current unavailable times</h3>
-    {% if unavailable_periods %}
-        <ul class="list-stack">
-            {% for period in unavailable_periods %}
-                <li>{{ period.starts_at|date:"D, M d, Y g:i A" }} to {{ period.ends_at|date:"g:i A" }}{% if period.reason %}, {{ period.reason }}{% endif %}
-                    <form method="post" action="{% url 'counselor:delete_unavailable_time' period.id %}">
-                        {% csrf_token %}
-                        <button class="btn btn-secondary" type="submit">Remove exception</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No unavailable periods have been added.</p>
-    {% endif %}
-    <h3>Upcoming appointments</h3>
-    {% if bookings %}
-        <ul class="list-stack">
-            {% for booking in bookings %}
-                <li>{{ booking.starts_at|date:"D, M d, Y, g:i A" }} to {{ booking.ends_at|date:"g:i A" }}, {{ booking.student.get_full_name|default:booking.student.username }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No appointments are booked.</p>
-    {% endif %}
+        </div>
+    </section>
+    <dialog class="schedule-modal" id="availability-modal" aria-labelledby="availability-modal-title">
+        <form method="post" class="schedule-modal__content">
+            {% csrf_token %}
+            <div class="schedule-modal__header">
+                <div>
+                    <span class="eyebrow">New availability</span>
+                    <h3 id="availability-modal-title">Add a one-time slot</h3>
+                </div>
+                <button class="schedule-modal__close" type="button" data-close-availability aria-label="Close dialog">&times;</button>
+            </div>
+            <p class="schedule-modal__date" id="availability-selected-date"></p>
+            {{ availability_form.weekday.as_hidden }}
+            {{ availability_form.effective_from.as_hidden }}
+            {{ availability_form.effective_until.as_hidden }}
+            <div class="schedule-modal__times">
+                <p>
+                    {{ availability_form.start_time.label_tag }}
+                    {{ availability_form.start_time }}
+                </p>
+                <p>
+                    {{ availability_form.end_time.label_tag }}
+                    {{ availability_form.end_time }}
+                </p>
+            </div>
+            {{ availability_form.non_field_errors }}
+            {{ availability_form.start_time.errors }}
+            {{ availability_form.end_time.errors }}
+            <div class="schedule-modal__actions">
+                <button class="btn btn-secondary" type="button" data-close-availability>Cancel</button>
+                <button class="btn btn-primary" type="submit" name="save_availability">Add availability</button>
+            </div>
+        </form>
+    </dialog>
 </div>
+<script>
+    (() => {
+        const modal = document.getElementById('availability-modal');
+        const selectedDate = document.getElementById('availability-selected-date');
+        const dateField = document.getElementById('id_availability-effective_from');
+        const untilField = document.getElementById('id_availability-effective_until');
+        const weekdayField = document.getElementById('id_availability-weekday');
+        if (!modal || !dateField || !untilField || !weekdayField) {
+            return;
+        }
+
+        document.querySelectorAll('.schedule-day__add').forEach((button) => {
+            button.addEventListener('click', () => {
+                const date = button.dataset.date;
+                const [year, month, day] = date.split('-').map(Number);
+                const selected = new Date(year, month - 1, day);
+                dateField.value = date;
+                untilField.value = date;
+                weekdayField.value = String(selected.getDay() === 0 ? 6 : selected.getDay() - 1);
+                selectedDate.textContent = selected.toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                });
+                modal.showModal();
+            });
+        });
+
+        document.querySelectorAll('[data-close-availability]').forEach((button) => {
+            button.addEventListener('click', () => modal.close());
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.close();
+            }
+        });
+    })();
+</script>
 {% endblock %}

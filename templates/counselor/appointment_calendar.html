@@ -1,32 +1,75 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="form-card">
-    <h2>Book a counseling appointment</h2>
-    <p>Choose a counselor and an available time. Booking reserves the entire displayed slot.</p>
+<div class="form-card appointment-page">
+    <div class="appointment-page__header">
+        <div>
+            <h2>Book a counseling appointment</h2>
+            <p>Select a counselor to view their appointment calendar. Green slots are open; gray slots are unavailable.</p>
+        </div>
+        <form method="get" class="counselor-picker">
+            <label for="counselor-picker">Counselor</label>
+            <select id="counselor-picker" name="counselor_id" onchange="this.form.submit()">
+                {% for counselor in counselors %}
+                    <option value="{{ counselor.id }}" {% if selected_counselor.id == counselor.id %}selected{% endif %}>
+                        {{ counselor.get_full_name|default:counselor.username }}
+                    </option>
+                {% empty %}
+                    <option>No counselors available</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
     <p><a class="text-link" href="{% url 'counselor:urgent_help' %}">Need help today? Request urgent help</a></p>
-    {% if slots %}
-        {% regroup slots by starts_at|date:"l, F j, Y" as days %}
-        {% for day in days %}
-            <section class="appointment-day">
-                <h3>{{ day.grouper }}</h3>
-                <div class="results-grid">
-                    {% for slot in day.list %}
-                        <article class="result-card appointment-slot">
-                            <strong>{{ slot.starts_at|date:"g:i A" }} to {{ slot.ends_at|date:"g:i A" }}</strong>
-                            <span>{{ slot.counselor.get_full_name|default:slot.counselor.username }}</span>
-                            <form method="post" action="{% url 'counselor:book_appointment' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="availability_id" value="{{ slot.availability.id }}">
-                                <input type="hidden" name="starts_at" value="{{ slot.starts_at|date:'c' }}">
-                                <button class="btn btn-primary" type="submit">Book this full slot</button>
-                            </form>
-                        </article>
-                    {% endfor %}
+    {% if selected_counselor %}
+        <section class="student-schedule-calendar" aria-labelledby="student-calendar-title">
+            <div class="student-schedule-calendar__title">
+                <h3 id="student-calendar-title">
+                    {{ selected_counselor.get_full_name|default:selected_counselor.username }}'s availability
+                </h3>
+                <div class="schedule-calendar__legend" aria-label="Calendar legend">
+                    <span><i class="schedule-dot schedule-dot--available"></i>Open</span>
+                    <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
                 </div>
-            </section>
-        {% endfor %}
+            </div>
+            <div class="schedule-calendar__weekdays" aria-hidden="true">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div class="schedule-calendar__grid">
+                {% for day in calendar_days %}
+                    <article class="schedule-day{% if day.date == today %} schedule-day--today{% endif %}{% if day.date < today %} schedule-day--past{% endif %}">
+                        <header>
+                            <span>{{ day.date|date:"D" }}</span>
+                            <strong>{{ day.date|date:"j" }}</strong>
+                        </header>
+                        {% if day.slots %}
+                            <div class="schedule-day__events">
+                                {% for slot in day.slots %}
+                                    <div class="schedule-event schedule-event--{{ slot.status }}">
+                                        <strong>{{ slot.starts_at|date:"g:i A" }} to {{ slot.ends_at|date:"g:i A" }}</strong>
+                                        {% if slot.status == "available" %}
+                                            <form method="post" action="{% url 'counselor:book_appointment' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="availability_id" value="{{ slot.availability.id }}">
+                                                <input type="hidden" name="starts_at" value="{{ slot.starts_at|date:'c' }}">
+                                                <button class="schedule-book-button" type="submit">Book slot</button>
+                                            </form>
+                                        {% elif slot.status == "booked" %}
+                                            <span>Booked</span>
+                                        {% else %}
+                                            <span>Unavailable</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="schedule-day__empty">No slots</span>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
     {% else %}
-        <p>No appointment times are available in the calendar right now. You can send a support request or view teacher contacts.</p>
+        <p>No counselors are available right now. You can send a support request or view teacher contacts.</p>
         <a class="btn btn-secondary" href="{% url 'counselor:teacher_directory' %}">View teacher contacts</a>
     {% endif %}
 </div>

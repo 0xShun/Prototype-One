@@ -69,24 +69,8 @@ def _recommendations_for_survey(factors):
 
 
 def _checkin_prompt_for(user):
-    last_intake = IntakeResponse.objects.filter(student=user).order_by('-date_submitted').first()
-    if not last_intake:
-        return {
-            'last_checkin_days': None,
-            'checkin_standard_note': 'We recommend checking in once a week. If your routine changes sooner, you can retake it anytime.',
-            'checkin_prompt': 'You can retake this anytime. Weekly check-ins are a good rhythm for tracking changes.',
-        }
-
-    days_since = (timezone.now() - last_intake.date_submitted).days
-    if days_since < 7:
-        prompt = f'You last checked in {days_since} day{"s" if days_since != 1 else ""} ago. If much has changed, you can retake it now.'
-    else:
-        prompt = f'It has been {days_since} days since your last check-in. Retaking it now can help keep your history current.'
-
     return {
-        'last_checkin_days': days_since,
-        'checkin_standard_note': 'We recommend checking in once a week. If your routine changes sooner, you can retake it anytime.',
-        'checkin_prompt': prompt,
+        'checkin_standard_note': 'We recommend checking in twice a week. If your routine changes sooner, you can retake it anytime.',
     }
 
 

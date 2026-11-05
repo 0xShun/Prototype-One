@@ -1,0 +1,17 @@
+<div class="table-wrap">
+    <table class="support-table">
+        <thead><tr><th>Student</th><th>Program</th><th>Year / section</th><th>Latest result</th><th>Referrals</th><th>Action</th></tr></thead>
+        <tbody>
+            {% for item in student_items %}
+                <tr>
+                    <td data-label="Student">{{ item.user.first_name|default:item.user.username }}</td>
+                    <td data-label="Program">{{ item.profile.program|default:"-" }}</td>
+                    <td data-label="Year / section">Year {{ item.profile.year_level|default:"-" }}{% if item.profile.section %} / {{ item.profile.section }}{% endif %}</td>
+                    <td data-label="Latest result"><span class="badge-{{ item.latest_result.stress_level|lower }}">{% if item.latest_result.stress_level == 'High' %}Urgent{% elif item.latest_result.stress_level == 'Moderate' %}Elevated{% else %}Routine{% endif %}</span><br>{{ item.latest_result.summary }}</td>
+                    <td data-label="Referrals">{{ item.profile.referral_count }}</td>
+                    <td data-label="Action"><a href="{% url 'counselor:student_detail' item.user.id %}" class="btn btn-secondary">View full history</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card support-page">
+    <h2>Student list</h2>
+    <p>View students and start a private conversation with a specific student.</p>
+    {% if students %}
+        <div class="table-wrap">
+            <table class="support-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Student</th>
+                        <th>Email</th>
+                        <th>Program</th>
+                        <th>Year / section</th>
+                        <th>Referrals</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for profile in students %}
+                        <tr>
+                            <td data-label="Username">{{ profile.user.username }}</td>
+                            <td data-label="Student">{{ profile.user.get_full_name|default:profile.user.username }}</td>
+                            <td data-label="Email">{{ profile.user.email|default:"-" }}</td>
+                            <td data-label="Program">{{ profile.program|default:"-" }}</td>
+                            <td data-label="Year / section">Year {{ profile.year_level|default:"-" }}{% if profile.section %} / {{ profile.section }}{% endif %}</td>
+                            <td data-label="Referrals">{{ profile.referral_count }}</td>
+                            <td data-label="Action"><a class="btn btn-secondary" href="{% url 'counselor:student_message' profile.user.id %}">Message</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No student accounts are available.</p>
+    {% endif %}
+</div>
+{% endblock %}

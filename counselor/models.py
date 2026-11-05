@@ -36,6 +36,7 @@ class StudentContactRequest(models.Model):
 	)
 	priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.ROUTINE)
 	initiated_by_system = models.BooleanField(default=False)
+	is_general_chat = models.BooleanField(default=False)
 	message = models.TextField()
 	counselor_reply = models.TextField(blank=True)
 	replied_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='replied_contact_requests')

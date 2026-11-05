@@ -63,11 +63,9 @@ class IntakeResponseForm(forms.ModelForm):
         model = IntakeResponse
         fields = [
             *[f'q{i}' for i in range(1, 21)],
-            'supporting_file',
             'presenting_concern',
         ]
         labels = {
-            'supporting_file': 'Optional supporting file',
             'presenting_concern': 'What is on your mind right now? (optional)',
             **QUESTION_LABELS,
         }
@@ -76,9 +74,6 @@ class IntakeResponseForm(forms.ModelForm):
                 f'q{i}': forms.RadioSelect(choices=LIKERT_CHOICES)
                 for i in range(1, 21)
             },
-            'supporting_file': forms.ClearableFileInput(attrs={
-                'accept': '.pdf,.doc,.docx,.txt,.jpg,.png',
-            }),
             'presenting_concern': forms.Textarea(attrs={
                 'rows': 4,
                 'placeholder': 'Share anything you would like your counselor to know about how you are feeling.',
