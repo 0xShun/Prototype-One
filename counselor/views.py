@@ -178,6 +178,44 @@ def teacher_approvals(request):
 
 
 @counselor_required
+def urgent_support(request):
+    urgent_requests = (
+        StudentContactRequest.objects.filter(
+            priority=StudentContactRequest.Priority.URGENT,
+        )
+        .filter(
+            Q(assigned_counselor__isnull=True)
+            | Q(assigned_counselor=request.user)
+        )
+        .select_related('student', 'assigned_counselor')
+        .prefetch_related('messages')
+        .order_by('-updated_at')
+    )
+    return render(request, 'counselor/urgent_support.html', {
+        'urgent_requests': urgent_requests,
+    })
+
+
+@login_required
+def student_urgent_support(request):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and (profile.is_counselor or profile.is_teacher):
+        return HttpResponseForbidden('Only student accounts can view their urgent support requests.')
+    urgent_requests = (
+        StudentContactRequest.objects.filter(
+            student=request.user,
+            priority=StudentContactRequest.Priority.URGENT,
+        )
+        .select_related('assigned_counselor')
+        .prefetch_related('messages')
+        .order_by('-updated_at')
+    )
+    return render(request, 'counselor/student_urgent_support.html', {
+        'urgent_requests': urgent_requests,
+    })
+
+
+@counselor_required
 def student_list(request):
     students = (
         StudentProfile.objects.filter(is_counselor=False, is_teacher=False)

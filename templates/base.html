@@ -50,6 +50,12 @@
                     <a href="{% url 'counselor:archive' %}">Archived results</a>
                     <a href="{% url 'counselor:teacher_approvals' %}">Teacher approvals</a>
                     <details class="nav-dropdown">
+                        <summary>Support</summary>
+                        <div class="nav-dropdown__menu">
+                            <a href="{% url 'counselor:urgent_support' %}">Urgent support</a>
+                        </div>
+                    </details>
+                    <details class="nav-dropdown">
                         <summary>Notifications</summary>
                         <div class="nav-dropdown__menu">
                             <a href="{% url 'notifications' %}">Notifications</a>
@@ -106,6 +112,7 @@
                         <div class="nav-dropdown__menu">
                             <a href="{% url 'counselor:contact_request' %}">Contact support</a>
                             <a href="{% url 'counselor:general_chats' %}">General chats</a>
+                            <a href="{% url 'counselor:student_urgent_support' %}">Urgent support</a>
                             <a href="{% url 'counselor:teacher_directory' %}">Teacher contacts</a>
                         </div>
                     </details>

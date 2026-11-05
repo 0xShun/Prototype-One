@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card support-page">
+    <h2>Urgent support</h2>
+    <p>Urgent support requests are collected here so they are easy to review.</p>
+    {% if urgent_requests %}
+        <div class="urgent-support-list">
+            {% for request in urgent_requests %}
+                <a class="urgent-support-card" href="{% url 'counselor:contact_request_detail' request.id %}">
+                    <div class="urgent-support-card__header">
+                        <strong>{{ request.student.get_full_name|default:request.student.username }}</strong>
+                        <span class="badge-high">Urgent</span>
+                    </div>
+                    <p>{{ request.messages.last.body|default:request.message|truncatewords:30 }}</p>
+                    <div class="urgent-support-card__meta">
+                        <span>{{ request.status }}</span>
+                        {% if request.assigned_counselor %}
+                            <span>Assigned to {{ request.assigned_counselor.get_full_name|default:request.assigned_counselor.username }}</span>
+                        {% else %}
+                            <span>Unassigned</span>
+                        {% endif %}
+                        <time>{{ request.updated_at|date:"M d, Y g:i A" }}</time>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No urgent support requests are waiting.</p>
+    {% endif %}
+</div>
+{% endblock %}

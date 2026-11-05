@@ -1450,6 +1450,54 @@ input:focus, select:focus, textarea:focus { outline: 2px solid rgba(20, 33, 61, 
   margin-top: 1.8rem;
 }
 
+.urgent-support-list {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.2rem;
+}
+
+.urgent-support-card {
+  display: block;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(214, 90, 90, 0.16);
+  border-radius: 16px;
+  background: #fffafa;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.urgent-support-card:hover,
+.urgent-support-card:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(20, 33, 61, 0.08);
+}
+
+.urgent-support-card__header,
+.urgent-support-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.urgent-support-card__header strong {
+  font-size: 1rem;
+}
+
+.urgent-support-card p {
+  margin: 0.7rem 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.urgent-support-card__meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .support-table {
   width: 100%;
   border-collapse: collapse;

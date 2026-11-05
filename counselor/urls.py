@@ -28,6 +28,8 @@ from .views import (
     urgent_help,
     review_teacher_referral,
     teacher_approvals,
+    urgent_support,
+    student_urgent_support,
 )
 
 urlpatterns = [
@@ -43,6 +45,8 @@ urlpatterns = [
     path('teacher/referral/', teacher_referral, name='teacher_referral'),
     path('teacher/referral/<int:referral_id>/review/', review_teacher_referral, name='review_teacher_referral'),
     path('teacher-approvals/', teacher_approvals, name='teacher_approvals'),
+    path('urgent-support/', urgent_support, name='urgent_support'),
+    path('my-urgent-support/', student_urgent_support, name='student_urgent_support'),
     path('appointments/', appointment_calendar, name='appointment_calendar'),
     path('appointments/book/', book_appointment, name='book_appointment'),
     path('appointments/mine/', student_appointments, name='student_appointments'),
