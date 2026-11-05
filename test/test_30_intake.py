@@ -66,19 +66,29 @@ class IntakeFlowTests(TestCase):
         response = self.client.get(reverse('intake:result'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'High')
-        self.assertNotContains(response, 'Low', status_code=200)
+        self.assertContains(response, '<span class="result-badge">High</span>', html=True)
 
-    def test_result_page_separates_pending_prediction_from_survey_result(self):
+    def test_result_page_shows_model_signal_separately_from_survey_result(self):
         create_result_for_student(self.student, stress_level='Moderate')
         self.client.login(username='intakestudent', password='StrongPass123!')
 
         response = self.client.get(reverse('intake:result'))
 
         self.assertContains(response, 'Check-in area scores')
-        self.assertContains(response, 'Predictive support signal')
-        self.assertContains(response, 'enough approved data and a trained model')
-        self.assertNotContains(response, 'Low:')
+        self.assertContains(response, 'Initial model support signal')
+        self.assertContains(response, 'does not replace your check-in result')
+
+    def test_result_page_shows_initial_model_signal(self):
+        intake, _ = create_result_for_student(self.student, stress_level='High')
+        for i in range(1, 21):
+            setattr(intake, f'q{i}', 5)
+        intake.save()
+        self.client.login(username='intakestudent', password='StrongPass123!')
+
+        response = self.client.get(reverse('intake:result'))
+
+        self.assertContains(response, 'Initial model support signal')
+        self.assertContains(response, 'generated response patterns')
 
     def test_history_lists_results_oldest_to_newest(self):
         create_result_for_student(self.student, stress_level='Low', days_ago=5)

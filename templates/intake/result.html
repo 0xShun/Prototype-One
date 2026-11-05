@@ -19,10 +19,10 @@
             </ul>
         </div>
         <div class="result-model-panel">
-            <h3>Predictive support signal</h3>
+            <h3>Initial model support signal</h3>
             {% if model_prediction %}
                 <span class="result-badge">{{ model_prediction.label }}</span>
-                <p>This is an additional model-based estimate from your answers. It does not replace your check-in result.</p>
+                <p>This initial model signal was trained using generated response patterns based on the approved survey structure. It does not replace your check-in result and requires further counselor-reviewed validation.</p>
                 {% if model_prediction.probabilities %}
                     <ul class="list-stack">
                         {% for label, probability in model_prediction.probabilities.items %}

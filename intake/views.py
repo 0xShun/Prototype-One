@@ -13,6 +13,7 @@ from counselor.models import ContactMessage, StudentContactRequest
 
 from .forms import IntakeResponseForm
 from .models import IntakeDraft, IntakeResponse, Result
+from .model_service import predict_support_signal
 
 
 def _survey_band(score, item_count):
@@ -183,7 +184,7 @@ def result_view(request):
     return render(request, 'intake/result.html', {
         'result': latest,
         'recommendations': recommendations,
-        'model_prediction': None,
+        'model_prediction': predict_support_signal(latest.intake_response) if latest else None,
     })
 
 
