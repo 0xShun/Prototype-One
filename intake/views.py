@@ -192,9 +192,14 @@ def history_view(request):
 
 @login_required
 def analytics_view(request):
+    context = _analytics_context_for_user(request.user)
+    return render(request, 'intake/analytics.html', context)
+
+
+def _analytics_context_for_user(user):
     results = list(
         Result.objects.filter(
-            intake_response__student=request.user,
+            intake_response__student=user,
             archived_at__isnull=True,
         )
         .select_related('intake_response')
@@ -229,7 +234,7 @@ def analytics_view(request):
         except (FileNotFoundError, ImportError, OSError, ValueError):
             logger.exception('Unable to generate the offline analytics model estimate.')
             model_unavailable = True
-    context = {
+    return {
         'latest': latest,
         'previous': previous,
         'factors': factors,
@@ -239,7 +244,6 @@ def analytics_view(request):
         'model_history_available': model_history_available,
         'model_unavailable': model_unavailable,
     }
-    return render(request, 'intake/analytics.html', context)
 
 
 @login_required

@@ -3,12 +3,6 @@
 <div class="form-card">
     <div class="intake-intro">
         <h2>Start a check-in</h2>
-        <p>Answer 20 brief questions about your recent school experience, social media habits, and sleep patterns.</p>
-        <p class="form-guide">This check-in is for support and reflection, not a medical diagnosis.</p>
-        <div class="likert-guide">
-            <strong>Use this scale for every question</strong>
-            <p>1 = Never / Strongly Disagree &middot; 2 = Seldom / Disagree &middot; 3 = Sometimes / Neutral &middot; 4 = Often / Agree &middot; 5 = Always / Strongly Agree</p>
-        </div>
     </div>
     {% if checkin_standard_note %}
         <div class="soft-reminder">
@@ -44,7 +38,6 @@
         </section>
         {% endfor %}
         <div class="form-actions">
-            <button class="btn btn-secondary" type="button" id="save-draft-btn">Save draft</button>
             <button class="btn btn-secondary" type="button" id="intake-back-btn">Back</button>
             <button class="btn btn-primary" type="button" id="intake-next-btn" disabled>Next</button>
             <button class="btn btn-primary" type="submit" id="intake-submit-btn" hidden>Submit</button>
@@ -53,7 +46,6 @@
 </div>
 <script>
     const intakeForm = document.getElementById('intake-form');
-    const saveDraftButton = document.getElementById('save-draft-btn');
     const intakeSections = Array.from(document.querySelectorAll('.intake-section[data-step]'));
     const backButton = document.getElementById('intake-back-btn');
     const nextButton = document.getElementById('intake-next-btn');
@@ -99,31 +91,5 @@
         });
     }
 
-    if (intakeForm && saveDraftButton) {
-        const collectPayload = () => {
-            const data = new FormData(intakeForm);
-            const payload = {};
-            for (const [key, value] of data.entries()) {
-                if (typeof value === 'string') {
-                    payload[key] = value;
-                }
-            }
-            return payload;
-        };
-
-        const saveDraft = () => {
-            const payload = collectPayload();
-            fetch('{% url "intake:drafts" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({ payload })
-            }).catch(() => {});
-        };
-
-        saveDraftButton.addEventListener('click', saveDraft);
-    }
 </script>
 {% endblock %}

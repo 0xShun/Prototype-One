@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="more-page">
+    <h1>More options</h1>
+    <div class="more-grid">
+        <a class="more-card" href="{% url 'about' %}">
+            <svg class="more-card__icon ui-icon"><use href="#icon-info"></use></svg>
+            <span><strong>About</strong><small>How StudentSense works</small></span>
+        </a>
+        {% if role == 'student' %}
+            <a class="more-card" href="{% url 'intake:history' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-chart"></use></svg>
+                <span><strong>Your progress</strong><small>Review your check-in history</small></span>
+            </a>
+            <a class="more-card" href="{% url 'counselor:teacher_directory' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-address-book"></use></svg>
+                <span><strong>Teacher contacts</strong><small>Find a trusted teacher</small></span>
+            </a>
+            <a class="more-card" href="{% url 'counselor:student_appointments' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-calendar"></use></svg>
+                <span><strong>My appointments</strong><small>View upcoming sessions</small></span>
+            </a>
+        {% elif role == 'teacher' %}
+            <a class="more-card" href="{% url 'notifications' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-bell"></use></svg>
+                <span><strong>Notifications</strong><small>See updates</small></span>
+            </a>
+        {% else %}
+            <a class="more-card" href="{% url 'counselor:analytics_students' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-chart"></use></svg>
+                <span><strong>Analytics</strong><small>Review student trends</small></span>
+            </a>
+            <a class="more-card" href="{% url 'counselor:teacher_approvals' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-address-book"></use></svg>
+                <span><strong>Teacher approvals</strong><small>Manage requests</small></span>
+            </a>
+            <a class="more-card" href="{% url 'counselor:availability' %}">
+                <svg class="more-card__icon ui-icon"><use href="#icon-calendar"></use></svg>
+                <span><strong>Availability</strong><small>Manage appointments</small></span>
+            </a>
+        {% endif %}
+        <form class="more-card more-card--logout" method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">
+                <svg class="more-card__icon ui-icon"><use href="#icon-log-out"></use></svg>
+                <span><strong>Log out</strong><small>Sign out of StudentSense</small></span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

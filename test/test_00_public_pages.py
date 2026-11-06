@@ -10,7 +10,7 @@ class PublicPageTests(TestCase):
         response = self.client.get(reverse('home'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Understand your stress before it becomes overwhelming.')
+        self.assertContains(response, 'Check in with yourself.')
         self.assertContains(response, 'Create an account')
         self.assertContains(response, 'Sign in')
         self.assertContains(response, 'About the platform')

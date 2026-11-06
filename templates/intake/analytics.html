@@ -3,9 +3,9 @@
 <div class="form-card analytics-page">
     <div class="analytics-header">
         <div>
-            <span class="eyebrow">My data</span>
-            <h2>Analytics</h2>
-            <p>Review patterns in your own check-in history. These insights are for reflection and are not a medical diagnosis.</p>
+            <span class="eyebrow">{% if is_counselor_review %}Student data{% else %}My data{% endif %}</span>
+            <h2>{% if is_counselor_review %}{{ analytics_student.get_full_name|default:analytics_student.username }}'s analytics{% else %}Analytics{% endif %}</h2>
+            <p>{% if is_counselor_review %}Review this student's check-in patterns and support-level history. These insights are not a medical diagnosis.{% else %}Review patterns in your own check-in history. These insights are for reflection and are not a medical diagnosis.{% endif %}</p>
         </div>
     </div>
 
@@ -36,7 +36,7 @@
                 {% endif %}
             </div>
             <p class="analytics-muted">
-                This is an offline research estimate based on your previous check-ins.
+                This is an offline research estimate based on {% if is_counselor_review %}this student's{% else %}your{% endif %} previous check-ins.
                 It is not a diagnosis, does not replace your official check-in result,
                 and does not trigger alerts.
             </p>

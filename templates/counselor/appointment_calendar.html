@@ -31,9 +31,6 @@
                     <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
                 </div>
             </div>
-            <div class="schedule-calendar__weekdays" aria-hidden="true">
-                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-            </div>
             <div class="schedule-calendar__grid">
                 {% for day in calendar_days %}
                     <article class="schedule-day{% if day.date == today %} schedule-day--today{% endif %}{% if day.date < today %} schedule-day--past{% endif %}">

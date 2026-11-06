@@ -15,6 +15,7 @@ from django.utils.dateparse import parse_datetime
 from accounts.models import StudentProfile
 from intake.models import IntakeResponse, Result
 from recommendations.models import Recommendation
+from intake.views import _analytics_context_for_user
 
 from .forms import (
     ContactMessageForm,
@@ -228,6 +229,37 @@ def student_list(request):
         .order_by('user__last_name', 'user__first_name', 'user__username')
     )
     return render(request, 'counselor/student_list.html', {'students': students})
+
+
+@counselor_required
+def analytics_students(request):
+    students = (
+        get_user_model().objects.filter(
+            studentprofile__is_counselor=False,
+            studentprofile__is_teacher=False,
+        )
+        .select_related('studentprofile')
+        .annotate(checkin_count=Count('intakes'))
+        .order_by('last_name', 'first_name', 'username')
+    )
+    return render(request, 'counselor/analytics_students.html', {'students': students})
+
+
+@counselor_required
+def student_analytics(request, student_id):
+    student = get_object_or_404(
+        get_user_model().objects.filter(
+            studentprofile__is_counselor=False,
+            studentprofile__is_teacher=False,
+        ),
+        id=student_id,
+    )
+    context = _analytics_context_for_user(student)
+    context.update({
+        'analytics_student': student,
+        'is_counselor_review': True,
+    })
+    return render(request, 'intake/analytics.html', context)
 
 
 @login_required

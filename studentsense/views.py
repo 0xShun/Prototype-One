@@ -2,6 +2,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from accounts.models import StudentProfile
@@ -39,6 +40,22 @@ def home(request):
     return render(request, 'home_student.html', {
         'latest_result': latest_result,
     })
+
+
+@login_required
+def more(request):
+    profile = getattr(request.user, 'studentprofile', None)
+    if profile and profile.is_counselor:
+        role = 'counselor'
+    elif profile and profile.is_teacher:
+        role = 'teacher'
+    else:
+        role = 'student'
+    return render(request, 'more.html', {'role': role})
+
+
+def about(request):
+    return render(request, 'about.html')
 
 
 def offline_page(request):

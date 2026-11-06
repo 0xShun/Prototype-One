@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-card counselor-analytics-page">
+    <div class="analytics-header">
+        <div>
+            <span class="eyebrow">Counselor data</span>
+            <h2>Student analytics</h2>
+            <p>Select a student to review their personal check-in patterns and support-level history.</p>
+        </div>
+    </div>
+
+    {% if students %}
+        <div class="counselor-analytics-grid">
+            {% for student in students %}
+                <a class="counselor-analytics-card" href="{% url 'counselor:student_analytics' student.id %}">
+                    <span class="counselor-analytics-card__avatar">{{ student.username|slice:':1'|upper }}</span>
+                    <span class="counselor-analytics-card__content">
+                        <strong>{{ student.get_full_name|default:student.username }}</strong>
+                        <small>{{ student.checkin_count }} check-in{{ student.checkin_count|pluralize }}</small>
+                    </span>
+                    <span class="counselor-analytics-card__arrow" aria-hidden="true">&rarr;</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No students available.</h3>
+            <p>Student analytics will appear after student accounts are created.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

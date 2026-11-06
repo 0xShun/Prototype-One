@@ -198,7 +198,8 @@ class IntakeFlowTests(TestCase):
         self.assertContains(response, 'Academic stress and workload')
         self.assertContains(response, 'Social media usage')
         self.assertContains(response, 'Sleep patterns and habits')
-        self.assertContains(response, '1 = Never / Strongly Disagree')
+        self.assertNotContains(response, 'Use this scale for every question')
+        self.assertNotContains(response, '1 = Never / Strongly Disagree')
 
     def test_student_can_download_own_supporting_file(self):
         intake, _ = create_result_for_student(self.student, stress_level='Moderate')

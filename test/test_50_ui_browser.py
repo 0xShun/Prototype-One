@@ -43,16 +43,11 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         except Exception:
             pass
 
-    def open_mobile_menu(self):
-        self.assertTrue(self.page.locator('#nav-toggle').is_visible())
-        self.page.locator('#nav-toggle').click()
-        self.assertTrue(self.page.get_by_role('navigation').first.is_visible())
-
     def test_public_home_page_renders_on_mobile(self):
         self.page.goto(f'{self.live_server_url}/')
-        self.assertIn('Understand your stress before it becomes overwhelming.', self.page.locator('body').inner_text())
-        self.assertTrue(self.page.locator('#nav-toggle').is_visible())
-        self.open_mobile_menu()
+        self.assertIn('Check in with yourself.', self.page.locator('body').inner_text())
+        self.assertFalse(self.page.locator('.bottom-nav').count())
+        self.assertFalse(self.page.locator('#nav-toggle').count())
         self.assertFalse(self.page.get_by_role('link', name='About').count())
         self.assertFalse(self.page.get_by_role('link', name='How To').count())
         self.assertIn('About the platform', self.page.locator('body').inner_text())
@@ -73,7 +68,7 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.page.goto(f'{self.live_server_url}/intake/new/')
         reminder_text = self.page.locator('.soft-reminder').first.inner_text()
         self.assertIn('We recommend checking in once a week', reminder_text)
-        self.assertIn('Use this scale for every question', self.page.locator('body').inner_text())
+        self.assertNotIn('Use this scale for every question', self.page.locator('body').inner_text())
         self.assertNotIn('Research behind these questions', self.page.locator('body').inner_text())
 
         for index in range(1, 6):

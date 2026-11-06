@@ -2,14 +2,11 @@
 {% block content %}
 <div class="banner-hero banner-hero--content">
     <div>
-        <span class="eyebrow">Your StudentSense home</span>
-        <h1>Make space to understand how you are doing.</h1>
-        <p>Use a quick check-in to see what may be affecting your energy, workload, and recovery.</p>
+        <span class="eyebrow">Your wellbeing space</span>
+        <h1>How are you feeling today?</h1>
+        <p>Take a moment. You can check in whenever you need.</p>
         <div class="hero-actions">
             <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
-            <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
-            <a class="btn btn-secondary" href="{% url 'counselor:appointment_calendar' %}">Book an appointment</a>
-            <a class="btn btn-secondary" href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
         </div>
     </div>
     <div class="hero-panel">
@@ -17,15 +14,15 @@
             <span class="banner-label">Latest check-in</span>
             {% if latest_result %}
                 <h2>{{ latest_result.stress_level }} support level</h2>
-                <p>{{ latest_result.summary }}</p>
+                <p>See your latest result and suggested next steps.</p>
             {% else %}
                 <h2>Your first check-in is ready</h2>
-                <p>Answer a few questions about your recent week to receive a supportive summary.</p>
+                <p>It only takes a few minutes.</p>
             {% endif %}
         </div>
-        <div class="metric-grid">
-            <div class="metric"><span>Check in regularly</span><strong>Track your progress</strong></div>
-            <div class="metric"><span>Want to talk?</span><strong><a href="{% url 'counselor:contact_request' %}">Contact a counselor</a></strong></div>
+        <div class="student-quick-links">
+            <a href="{% url 'intake:history' %}"><span>Progress</span><strong>View your journey</strong></a>
+            <a href="{% url 'counselor:contact_request' %}"><span>Support</span><strong>Talk to someone</strong></a>
         </div>
     </div>
 </div>
