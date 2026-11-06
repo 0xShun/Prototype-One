@@ -2095,6 +2095,35 @@ input:focus, select:focus, textarea:focus { outline: 2px solid rgba(20, 33, 61, 
 
 .teacher-status-form select {
   min-width: 7.5rem;
+  min-height: 2.7rem;
+  padding: 0.55rem 2.2rem 0.55rem 0.8rem;
+  border: 1px solid rgba(79, 124, 255, 0.24);
+  border-radius: 0.85rem;
+  background: #f8fbff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.teacher-status-form select:hover {
+  border-color: rgba(79, 124, 255, 0.52);
+  background: #ffffff;
+}
+
+.teacher-status-form select:focus-visible {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.16);
+}
+
+.support-table .badge-high,
+.support-table .badge-moderate {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 @media (max-width: 900px) {

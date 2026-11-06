@@ -116,9 +116,7 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         self.assertIn('Student support', self.page.locator('body').inner_text())
         self.assertIn('browserrisk', self.page.locator('body').inner_text())
 
-        self.page.get_by_role('link', name='View full history').first.click()
-        self.assertIn('Results history', self.page.locator('body').inner_text())
-        self.assertIn('CHECK-IN DETAILS', self.page.locator('body').inner_text())
+        self.assertFalse(self.page.get_by_role('link', name='View full history').count())
 
     def test_counselor_chat_looks_like_a_messenger_thread(self):
         counselor = create_counselor('browserchatcounselor')

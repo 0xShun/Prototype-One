@@ -2,21 +2,15 @@
 {% block content %}
 <div class="form-card schedule-page">
     <h2>Appointments and availability</h2>
-    <p>Select a future day to add a one-time appointment slot. Students book the complete slot shown in their calendar.</p>
     <section class="schedule-calendar" aria-labelledby="schedule-calendar-title">
         <div class="schedule-calendar__header">
             <div>
                 <h3 id="schedule-calendar-title">Your schedule</h3>
-                <p>Review upcoming availability, booked appointments, and unavailable periods.</p>
             </div>
             <div class="schedule-calendar__legend" aria-label="Calendar legend">
                 <span><i class="schedule-dot schedule-dot--available"></i>Available</span>
                 <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
-                <span><i class="schedule-dot schedule-dot--unavailable"></i>Unavailable</span>
             </div>
-        </div>
-        <div class="schedule-calendar__weekdays" aria-hidden="true">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="schedule-calendar__grid">
             {% for day in calendar_days %}
