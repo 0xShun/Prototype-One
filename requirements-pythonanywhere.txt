@@ -1,0 +1,4 @@
+# Core web dependencies for quota-limited PythonAnywhere accounts.
+# The optional ML dependencies in requirements.txt are not needed for the
+# main web app and are loaded only when their model features are used.
+Django==5.2.17

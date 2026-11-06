@@ -2,9 +2,6 @@ import json
 import logging
 from pathlib import Path
 
-import lightgbm as lgb
-
-
 logger = logging.getLogger(__name__)
 MODEL_DIR = Path(__file__).resolve().parent / 'model_artifacts'
 MODEL_PATH = MODEL_DIR / 'studentsense_support_model.txt'
@@ -23,6 +20,8 @@ def predict_support_signal(intake):
         return None
 
     try:
+        import lightgbm as lgb
+
         metadata = json.loads(METADATA_PATH.read_text(encoding='utf-8'))
         model = lgb.Booster(model_file=str(MODEL_PATH))
         features = [[getattr(intake, name) for name in FEATURE_NAMES]]

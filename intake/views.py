@@ -15,8 +15,6 @@ from counselor.models import ContactMessage, StudentContactRequest
 
 from .forms import IntakeResponseForm
 from .models import IntakeDraft, IntakeResponse, Result
-from .model_service import predict_support_signal
-from model_prototype.predict_multinomial_support import predict as predict_multinomial_support
 
 
 logger = logging.getLogger(__name__)
@@ -230,6 +228,8 @@ def _analytics_context_for_user(user):
     model_unavailable = False
     if model_history_available:
         try:
+            from model_prototype.predict_multinomial_support import predict as predict_multinomial_support
+
             model_prediction = predict_multinomial_support(results)
         except (FileNotFoundError, ImportError, OSError, ValueError):
             logger.exception('Unable to generate the offline analytics model estimate.')
