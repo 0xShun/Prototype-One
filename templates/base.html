@@ -220,6 +220,11 @@
     }
 
     if (navToggle && primaryNavigation) {
+        const closeNavigation = () => {
+            navToggle.setAttribute('aria-expanded', 'false');
+            primaryNavigation.classList.remove('is-open');
+        };
+
         navToggle.addEventListener('click', () => {
             const expanded = navToggle.getAttribute('aria-expanded') === 'true';
             navToggle.setAttribute('aria-expanded', String(!expanded));
@@ -228,11 +233,21 @@
 
         primaryNavigation.querySelectorAll('a, button').forEach((element) => {
             element.addEventListener('click', () => {
-                if (window.matchMedia('(max-width: 640px)').matches) {
-                    navToggle.setAttribute('aria-expanded', 'false');
-                    primaryNavigation.classList.remove('is-open');
-                }
+                closeNavigation();
             });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!primaryNavigation.contains(event.target) && !navToggle.contains(event.target)) {
+                closeNavigation();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeNavigation();
+                navToggle.focus();
+            }
         });
     }
 </script>

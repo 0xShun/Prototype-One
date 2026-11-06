@@ -7,7 +7,7 @@ from .models import StudentProfile
 
 class StudentRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
-    program = forms.CharField(max_length=100, required=True)
+    program = forms.CharField(max_length=100, required=True, label='Strand')
     year_level = forms.CharField(max_length=20, required=True)
     age = forms.IntegerField(min_value=10, max_value=100, required=False)
     section = forms.CharField(max_length=50, required=False)
