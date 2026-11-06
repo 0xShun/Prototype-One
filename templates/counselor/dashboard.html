@@ -28,14 +28,13 @@
         </div>
     {% else %}<p>No urgent requests waiting.</p>{% endif %}
 
-    {% comment %}
-    <h3>Requests assigned to you</h3>
-    {% if assigned_requests %}
+    <h3>Unassigned requests</h3>
+    {% if unassigned_requests %}
         <div class="table-wrap">
             <table class="support-table">
                 <thead><tr><th>Student</th><th>Status</th><th>Latest message</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody>
-                    {% for request in assigned_requests %}
+                    {% for request in unassigned_requests %}
                         <tr>
                             <td data-label="Student">{{ request.student.first_name|default:request.student.username }}</td>
                             <td data-label="Status">{{ request.status }}</td>
@@ -44,7 +43,7 @@
                             <td data-label="Action">
                                 <form method="post" action="{% url 'counselor:open_support_conversation' request.id %}">
                                     {% csrf_token %}
-                                    <button class="btn btn-secondary" type="submit">Open conversation</button>
+                                    <button class="btn btn-secondary" type="submit">Review request</button>
                                 </form>
                             </td>
                         </tr>
@@ -52,8 +51,7 @@
                 </tbody>
             </table>
         </div>
-    {% else %}<p>No active requests are assigned to you.</p>{% endif %}
-    {% endcomment %}
+    {% else %}<p>No unassigned requests.</p>{% endif %}
 
     <h3>Teacher referrals</h3>
     {% if teacher_referrals %}

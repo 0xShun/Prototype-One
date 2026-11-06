@@ -16,9 +16,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         today = timezone.localdate()
-        current_week_start = today - timedelta(days=today.weekday())
-        week_start = current_week_start - timedelta(days=7)
-        week_end = current_week_start
+        week_start = today - timedelta(days=7)
+        week_end = today
         week_start_dt = timezone.make_aware(datetime.combine(week_start, time.min))
         week_end_dt = timezone.make_aware(datetime.combine(week_end, time.min))
 

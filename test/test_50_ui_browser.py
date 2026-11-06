@@ -43,6 +43,10 @@ class BrowserFlowTests(StaticLiveServerTestCase):
         except Exception:
             pass
 
+    def open_mobile_menu(self):
+        self.page.get_by_role('link', name='More').first.click()
+        self.page.wait_for_url(f'{self.live_server_url}/more/')
+
     def test_public_home_page_renders_on_mobile(self):
         self.page.goto(f'{self.live_server_url}/')
         self.assertIn('Check in with yourself.', self.page.locator('body').inner_text())

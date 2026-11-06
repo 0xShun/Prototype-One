@@ -8,7 +8,7 @@
             <div class="result-alert">
                 <strong>Your result was flagged for prompt support follow-up.</strong>
                 <p>The counseling team was notified. If you would like help now, you can send an urgent request.</p>
-                <a class="btn btn-primary" href="{% url 'counselor:messages_home' %}">Open messages</a>
+                <a class="btn btn-primary" href="{% url 'counselor:urgent_help' %}">Request urgent help</a>
             </div>
         {% endif %}
         <div>
@@ -44,11 +44,12 @@
                         {% endfor %}
                     </ul>
                 {% endif %}
-                <p class="helptext">These factors describe how the model reached its estimate. They do not prove that any factor caused burnout.</p>
+                <p class="helptext">These factors describe how the model reached its estimate. They do not prove that any factor caused burnout and do not replace your check-in result.</p>
             {% else %}
                 <p class="result-model-panel__pending">A predictive support signal will appear here when enough approved data and a trained model are available.</p>
                 <p class="helptext">Your current check-in result above is the direct support signal for this submission.</p>
             {% endif %}
+            <p class="helptext">This signal is based on generated response patterns and does not replace your check-in result.</p>
         </div>
         <div>
             <h3>Suggested support</h3>

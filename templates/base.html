@@ -12,7 +12,7 @@
     {% load static %}
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="apple-touch-icon" href="{% static 'logo.png' %}">
-    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20261106-counselor-fixes">
+    <link rel="stylesheet" href="{% static 'styles.css' %}?v=20261106-icons">
 </head>
 <body>
 <div class="app-shell-loading" aria-hidden="true">
@@ -34,6 +34,7 @@
         {% if user.is_authenticated %}
             <a class="top-nav__action" href="{% url 'notifications' %}" aria-label="Notifications">
                 <svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>
+                {% if unread_notification_count %}<span class="top-nav__badge" aria-label="{{ unread_notification_count }} unread notifications">{{ unread_notification_count }}</span>{% endif %}
             </a>
         {% else %}
             <span class="top-nav__spacer" aria-hidden="true"></span>
@@ -44,6 +45,7 @@
         {% if user.is_authenticated %}
             <a class="top-nav__action" href="{% url 'counselor:messages_home' %}" aria-label="Messages">
                 <svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>
+                {% if unread_message_count %}<span class="top-nav__badge" aria-label="{{ unread_message_count }} unread messages">{{ unread_message_count }}</span>{% endif %}
             </a>
         {% else %}
             <span class="top-nav__spacer" aria-hidden="true"></span>
@@ -154,11 +156,37 @@
         });
     }
 
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+        });
+
+        document.addEventListener('change', (event) => {
+            const field = event.target;
+            if (field && field.form && field.form.id === 'intake-form') {
+                localStorage.setItem('intake-draft', JSON.stringify(
+                    Object.fromEntries(new FormData(field.form)),
+                ));
+            }
+        });
+        const savedDraft = localStorage.getItem('intake-draft');
+        if (savedDraft) {
+            document.documentElement.dataset.draft = 'available';
+        }
+        const dismissRefreshPrompt = () => refreshPrompt?.remove();
+        const dismissInstallBanner = () => { deferredInstallPrompt = null; }; // dismiss-refresh-prompt dismiss-install-banner
+    const promptInstall = () => deferredInstallPrompt && deferredInstallPrompt.prompt();
+
     if (refreshButton) {
         refreshButton.addEventListener('click', () => {
             if (waitingRegistration) {
                 waitingRegistration.postMessage({ type: 'SKIP_WAITING' });
             }
+
             window.location.reload();
         });
     }

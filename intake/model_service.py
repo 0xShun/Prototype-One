@@ -17,7 +17,11 @@ BLOCKS = (
 
 def predict_support_signal(intake):
     if not MODEL_PATH.exists() or not METADATA_PATH.exists():
-        return None
+        return {
+            'label': 'Unavailable',
+            'probabilities': {},
+            'factors': ['Generated response patterns are not available in this environment.'],
+        }
 
     try:
         import lightgbm as lgb
@@ -48,6 +52,10 @@ def predict_support_signal(intake):
             },
             'factors': factors[:3],
         }
-    except (OSError, KeyError, TypeError, ValueError, IndexError):
+    except (ImportError, OSError, KeyError, TypeError, ValueError, IndexError):
         logger.exception('Unable to generate the StudentSense model support signal.')
-        return None
+        return {
+            'label': 'Unavailable',
+            'probabilities': {},
+            'factors': ['Generated response patterns are not available in this environment.'],
+        }

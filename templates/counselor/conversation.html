@@ -34,13 +34,15 @@
             <div class="chat-room__composer">
                 <form method="post" class="chat-composer">
                     {% csrf_token %}
-                    {% if is_counselor %}
-                        {{ form.body }}
-                    {% else %}
-                        {{ form.message }}
-                    {% endif %}
+                    <div class="chat-composer__row">
+                        {% if is_counselor %}
+                            {{ form.body }}
+                        {% else %}
+                            {{ form.message }}
+                        {% endif %}
+                        <button class="chat-send" type="submit" aria-label="Send message" title="Send message"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+                    </div>
                     <div class="form-actions">
-                        <button class="btn btn-primary" type="submit">Send message</button>
                         <a class="btn btn-secondary" href="{% url 'counselor:messages_home' %}">Back to messages</a>
                     </div>
                 </form>

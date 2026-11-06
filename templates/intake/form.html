@@ -29,6 +29,11 @@
             {% endfor %}
             {% if forloop.last %}
             <div class="intake-field">
+                {{ form.supporting_file.label_tag }}
+                {{ form.supporting_file }}
+                {{ form.supporting_file.errors }}
+            </div>
+            <div class="intake-field">
                 {{ form.presenting_concern.label_tag }}
                 {{ form.presenting_concern }}
                 <div class="helptext">This note is shared with counselors who can access your student record.</div>

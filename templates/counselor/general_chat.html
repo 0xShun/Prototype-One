@@ -26,9 +26,11 @@
             <div class="chat-room__composer">
                 <form method="post" class="chat-composer">
                     {% csrf_token %}
-                    {{ form.message }}
+                    <div class="chat-composer__row">
+                        {{ form.message }}
+                        <button class="chat-send" type="submit" aria-label="Send message" title="Send message"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+                    </div>
                     <div class="form-actions">
-                        <button class="btn btn-primary" type="submit">Send message</button>
                         <a class="btn btn-secondary" href="{% url 'counselor:general_chats' %}">Back to general chats</a>
                     </div>
                 </form>

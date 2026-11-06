@@ -48,6 +48,7 @@ def counselor_required(view_func):
             profile = StudentProfile.objects.get(user=request.user)
             if not profile.is_counselor:
                 return HttpResponseForbidden('You do not have permission to access this page.')
+            request.user.studentprofile = profile
         except StudentProfile.DoesNotExist:
             return HttpResponseForbidden('You do not have permission to access this page.')
         return view_func(request, *args, **kwargs)
@@ -359,6 +360,11 @@ def student_conversation(request, counselor_id):
         id=counselor_id,
     )
     conversation, _ = _get_or_create_conversation(request.user, counselor)
+    ContactMessage.objects.filter(
+        thread=conversation,
+        sender=ContactMessage.Sender.COUNSELOR,
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
     if request.method == 'POST':
         if request.POST.get('urgent_help'):
             conversation.priority = StudentContactRequest.Priority.URGENT
@@ -409,6 +415,11 @@ def counselor_conversation(request, student_id):
         id=student_id,
     )
     conversation, _ = _get_or_create_conversation(student, request.user)
+    ContactMessage.objects.filter(
+        thread=conversation,
+        sender=ContactMessage.Sender.STUDENT,
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
     if request.method == 'POST':
         form = ContactMessageForm(request.POST)
         if form.is_valid():
@@ -542,7 +553,7 @@ def claim_contact_request(request, request_id):
         contact_request.dashboard_reviewed_at = timezone.now()
         contact_request.save(update_fields=['assigned_counselor', 'dashboard_reviewed_at', 'updated_at'])
     messages.success(request, 'This request is now assigned to you.')
-    return redirect('counselor:counselor_conversation', student_id=contact_request.student_id)
+    return redirect('counselor:contact_request_detail', request_id=contact_request.id)
 
 
 @counselor_required
@@ -1228,6 +1239,32 @@ def urgent_help(request):
     profile = getattr(request.user, 'studentprofile', None)
     if profile and (profile.is_counselor or profile.is_teacher):
         return HttpResponseForbidden('Urgent student help is available to student accounts.')
+    if request.method == 'POST':
+        contact_request = StudentContactRequest.objects.create(
+            student=request.user,
+            priority=StudentContactRequest.Priority.URGENT,
+            message=request.POST.get('message', '').strip() or 'I need urgent help.',
+            status=StudentContactRequest.Status.OPEN,
+        )
+        ContactMessage.objects.create(
+            thread=contact_request,
+            sender=ContactMessage.Sender.STUDENT,
+            body=contact_request.message,
+        )
+        notify_users(
+            get_user_model().objects.filter(studentprofile__is_counselor=True),
+            kind=UserNotification.Kind.URGENT_HELP,
+            title='Urgent student help request',
+            body=f'{request.user.get_full_name() or request.user.username} requested urgent support.',
+            target_url=reverse('counselor:dashboard'),
+        )
+        notify_user(
+            request.user,
+            kind=UserNotification.Kind.URGENT_HELP,
+            title='Urgent support request received',
+            body='Your urgent support request was sent to the counseling team.',
+            target_url=reverse('counselor:messages_home'),
+        )
     return redirect('counselor:messages_home')
 
 

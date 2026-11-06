@@ -63,6 +63,7 @@ class ContactMessage(models.Model):
 	sender = models.CharField(max_length=20, choices=Sender.choices)
 	body = models.TextField()
 	created_at = models.DateTimeField(auto_now_add=True)
+	read_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		ordering = ['created_at']

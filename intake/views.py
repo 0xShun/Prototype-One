@@ -14,6 +14,7 @@ from recommendations.models import Recommendation
 from counselor.models import ContactMessage, StudentContactRequest
 
 from .forms import IntakeResponseForm
+from .model_service import predict_support_signal
 from .models import IntakeDraft, IntakeResponse, Result
 
 
@@ -72,9 +73,26 @@ def _recommendations_for_survey(factors):
     return [(factor, guidance[factor]) for factor in factors if factor in guidance]
 
 
-def _checkin_prompt_for(user):
+def _checkin_prompt_for(user, latest=None):
+    if latest is None:
+        latest = Result.objects.filter(
+            intake_response__student=user,
+            archived_at__isnull=True,
+        ).order_by('-created_at').first()
+    if latest:
+        days_since = max(0, (timezone.now() - latest.created_at).days)
+        return {
+            'checkin_standard_note': (
+                'We recommend checking in once a week. '
+                f'You last checked in {days_since} days ago. '
+                'If your routine changes sooner, you can retake it anytime.'
+            ),
+        }
     return {
-        'checkin_standard_note': 'We recommend checking in twice a week. If your routine changes sooner, you can retake it anytime.',
+        'checkin_standard_note': (
+            'We recommend checking in once a week. '
+            'You can retake this anytime. Weekly check-ins are a good rhythm for tracking changes.'
+        ),
     }
 
 
@@ -148,6 +166,15 @@ def create_intake(request):
                         sender=ContactMessage.Sender.SYSTEM,
                         body=support_note,
                     )
+                    from accounts.notifications import notify_user
+
+                    notify_user(
+                        request.user,
+                        kind='Urgent help',
+                        title='Urgent support follow-up',
+                        body='Your check-in was flagged for urgent support follow-up.',
+                        target_url=reverse('counselor:messages_home'),
+                    )
             return redirect('intake:result')
     else:
         draft = IntakeDraft.objects.filter(student=request.user).order_by('-updated_at').first()
@@ -183,8 +210,9 @@ def history_view(request):
         .prefetch_related('recommendations')
         .order_by('created_at')
     )
+    results = list(results)
     context = {'results': results}
-    context.update(_checkin_prompt_for(request.user))
+    context.update(_checkin_prompt_for(request.user, results[-1] if results else False))
     return render(request, 'intake/history.html', context)
 
 

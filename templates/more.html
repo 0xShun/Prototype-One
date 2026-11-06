@@ -41,7 +41,7 @@
         {% endif %}
         <form class="more-card more-card--logout" method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit">
+            <button type="submit" aria-label="Logout">
                 <svg class="more-card__icon ui-icon"><use href="#icon-log-out"></use></svg>
                 <span><strong>Log out</strong><small>Sign out of StudentSense</small></span>
             </button>

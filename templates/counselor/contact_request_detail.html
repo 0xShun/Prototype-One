@@ -47,9 +47,9 @@
                 <div class="chat-room__composer">
                     <form method="post" class="chat-composer">
                         {% csrf_token %}
-                        {{ form.body }}
-                        <div class="form-actions">
-                            <button class="btn btn-primary" type="submit">Send reply</button>
+                        <div class="chat-composer__row">
+                            {{ form.body }}
+                            <button class="chat-send" type="submit" aria-label="Send reply" title="Send reply"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
                         </div>
                     </form>
                     {% if contact_request.status == 'In progress' %}
