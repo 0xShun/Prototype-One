@@ -3,7 +3,7 @@
         <thead><tr><th>Student</th><th>Program</th><th>Year / section</th><th>Latest result</th><th>Referrals</th></tr></thead>
         <tbody>
             {% for item in student_items %}
-                <tr>
+                <tr data-level="{{ item.latest_result.stress_level }}">
                     <td data-label="Student">{{ item.user.first_name|default:item.user.username }}</td>
                     <td data-label="Program">{{ item.profile.program|default:"-" }}</td>
                     <td data-label="Year / section">Year {{ item.profile.year_level|default:"-" }}{% if item.profile.section %} / {{ item.profile.section }}{% endif %}</td>

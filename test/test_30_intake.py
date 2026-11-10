@@ -1,6 +1,7 @@
 import json
 import tempfile
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.test import override_settings
@@ -86,7 +87,11 @@ class IntakeFlowTests(TestCase):
 
         self.assertContains(response, 'Check-in area scores')
         self.assertContains(response, 'Initial model support signal')
-        self.assertContains(response, 'does not replace your check-in result')
+        self.assertContains(response, 'do not replace your check-in result')
+        self.assertNotContains(
+            response,
+            'This signal is based on generated response patterns and does not replace your check-in result.',
+        )
 
     def test_result_page_shows_initial_model_signal(self):
         intake, _ = create_result_for_student(self.student, stress_level='High')
@@ -98,7 +103,10 @@ class IntakeFlowTests(TestCase):
         response = self.client.get(reverse('intake:result'))
 
         self.assertContains(response, 'Initial model support signal')
-        self.assertContains(response, 'generated response patterns')
+        self.assertNotContains(
+            response,
+            'This signal is based on generated response patterns and does not replace your check-in result.',
+        )
 
     def test_history_lists_results_oldest_to_newest(self):
         create_result_for_student(self.student, stress_level='Low', days_ago=5)
@@ -119,6 +127,22 @@ class IntakeFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No check-ins yet. Start your first check-in to begin tracking your progress.')
+
+    def test_analytics_handles_missing_offline_model_without_estimate_wording(self):
+        create_result_for_student(self.student, stress_level='Low', days_ago=7)
+        create_result_for_student(self.student, stress_level='Moderate')
+        self.client.login(username='intakestudent', password='StrongPass123!')
+
+        with patch(
+            'model_prototype.predict_multinomial_support.predict',
+            side_effect=FileNotFoundError('offline model artifact is missing'),
+        ):
+            response = self.client.get(reverse('intake:analytics'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Possible next support level')
+        self.assertContains(response, 'The offline research model is not available in this app environment.')
+        self.assertNotIn('estimate', response.content.decode().lower())
 
     def test_intake_page_shows_general_soft_prompt_before_any_submission(self):
         self.client.login(username='intakestudent', password='StrongPass123!')
@@ -198,6 +222,11 @@ class IntakeFlowTests(TestCase):
         self.assertContains(response, 'Academic stress and workload')
         self.assertContains(response, 'Social media usage')
         self.assertContains(response, 'Sleep patterns and habits')
+        self.assertContains(response, '1 - Never')
+        self.assertContains(response, '2 - Rarely')
+        self.assertContains(response, '3 - Sometimes')
+        self.assertContains(response, '4 - Often')
+        self.assertContains(response, '5 - Very often')
         self.assertNotContains(response, 'Use this scale for every question')
         self.assertNotContains(response, '1 = Never / Strongly Disagree')
 

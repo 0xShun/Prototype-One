@@ -24,7 +24,7 @@ class Prediction:
     probabilities: dict[str, float]
     checkin_count: int
     warning: str = (
-        'Offline research estimate only; non-diagnostic and not connected to '
+        'Offline research prototype only; non-diagnostic and not connected to '
         'live student results.'
     )
 

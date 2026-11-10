@@ -2,7 +2,7 @@
 {% block content %}
 <div class="auth-card">
     <h2>Teacher account request</h2>
-    <p>Submit your school details. An administrator must approve the account before teacher tools are available.</p>
+    <p>Submit your school details. A counselor must approve the account before teacher tools are available.</p>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}

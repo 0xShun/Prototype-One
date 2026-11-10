@@ -152,7 +152,6 @@ def dashboard(request):
         'all_students': all_students,
         'contact_requests': routine_requests,
         'assigned_requests': assigned_requests,
-        'unassigned_requests': routine_requests,
         'urgent_requests': urgent_requests,
         'teacher_referrals': referrals,
     })
@@ -229,7 +228,11 @@ def student_list(request):
         )
         .order_by('user__last_name', 'user__first_name', 'user__username')
     )
-    return render(request, 'counselor/student_list.html', {'students': students})
+    return render(request, 'counselor/student_list.html', {
+        'students': students,
+        'programs': sorted({s.program for s in students if s.program}),
+        'year_levels': sorted({s.year_level for s in students if s.year_level}),
+    })
 
 
 @counselor_required

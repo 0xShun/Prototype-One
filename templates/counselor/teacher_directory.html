@@ -8,7 +8,7 @@
             {% for counselor in counselors %}
                 <article class="result-card">
                     <h3>{{ counselor.get_full_name|default:counselor.username }}</h3>
-                    <p>{{ counselor.studentprofile.program }}</p>
+                    <p>{{ counselor.studentprofile.program|default:"Counseling team" }}</p>
                     {% if counselor.studentprofile.phone_number %}
                         <a class="btn btn-secondary" href="tel:{{ counselor.studentprofile.phone_number }}">Call {{ counselor.studentprofile.phone_number }}</a>
                     {% else %}
@@ -23,7 +23,7 @@
             {% for teacher in teachers %}
                 <article class="result-card">
                     <h3>{{ teacher.get_full_name|default:teacher.username }}</h3>
-                    <p>{{ teacher.studentprofile.program }}</p>
+                    <p>{{ teacher.studentprofile.program|default:"Teacher" }}</p>
                     {% if teacher.studentprofile.phone_number %}
                         <span class="btn btn-secondary">Call {{ teacher.studentprofile.phone_number }}</span>
                     {% else %}

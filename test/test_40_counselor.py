@@ -74,7 +74,7 @@ class CounselorAccessTests(TestCase):
         self.assertEqual(thread.messages.count(), 1)
         self.assertEqual(thread.messages.first().sender, ContactMessage.Sender.STUDENT)
 
-    def test_counselor_dashboard_shows_open_contact_requests(self):
+    def test_counselor_dashboard_does_not_show_unassigned_requests_section(self):
         self.client.login(username='highstudent', password='StrongPass123!')
         self.client.post(
             reverse('counselor:contact_request'),
@@ -84,8 +84,8 @@ class CounselorAccessTests(TestCase):
         self.client.login(username='counselorflow', password='StrongPass123!')
         response = self.client.get(reverse('counselor:dashboard'))
 
-        self.assertContains(response, 'Unassigned requests')
-        self.assertContains(response, 'Please follow up with me.')
+        self.assertContains(response, 'Urgent requests')
+        self.assertNotContains(response, 'Unassigned requests')
 
     def test_counselor_can_update_contact_request_status_and_reply(self):
         self.client.login(username='highstudent', password='StrongPass123!')

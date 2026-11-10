@@ -1,9 +1,28 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="form-card support-page">
     <h2>Student list</h2>
     <p>View students and start a private conversation with a specific student.</p>
     {% if students %}
+        <div class="filter-bar" data-filter-bar>
+            <input type="search" data-filter="search" placeholder="Search name, username or email" aria-label="Search students">
+            <select data-filter="program" aria-label="Program">
+                <option value="">All programs</option>
+                {% for program in programs %}<option value="{{ program }}">{{ program }}</option>{% endfor %}
+            </select>
+            <select data-filter="year" aria-label="Year level">
+                <option value="">All years</option>
+                {% for year in year_levels %}<option value="{{ year }}">Year {{ year }}</option>{% endfor %}
+            </select>
+            <select data-filter="referrals" aria-label="Referrals">
+                <option value="">Any referrals</option>
+                <option value="yes">With referrals</option>
+                <option value="no">No referrals</option>
+            </select>
+            <button type="button" class="btn btn-secondary" data-filter-reset>Reset</button>
+        </div>
+        <p class="filter-empty" hidden>No students match your filters.</p>
         <div class="table-wrap">
             <table class="support-table">
                 <thead>
@@ -19,7 +38,7 @@
                 </thead>
                 <tbody>
                     {% for profile in students %}
-                        <tr>
+                        <tr data-program="{{ profile.program|default:'' }}" data-year="{{ profile.year_level|default:'' }}" data-referrals="{% if profile.referral_count %}yes{% else %}no{% endif %}">
                             <td data-label="Username">{{ profile.user.username }}</td>
                             <td data-label="Student">{{ profile.user.get_full_name|default:profile.user.username }}</td>
                             <td data-label="Email">{{ profile.user.email|default:"-" }}</td>
@@ -36,4 +55,5 @@
         <p>No student accounts are available.</p>
     {% endif %}
 </div>
+<script src="{% static 'table-filters.js' %}"></script>
 {% endblock %}

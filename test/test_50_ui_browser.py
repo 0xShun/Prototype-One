@@ -49,7 +49,8 @@ class BrowserFlowTests(StaticLiveServerTestCase):
 
     def test_public_home_page_renders_on_mobile(self):
         self.page.goto(f'{self.live_server_url}/')
-        self.assertIn('Check in with yourself.', self.page.locator('body').inner_text())
+        page_text = ' '.join(self.page.locator('body').inner_text().split())
+        self.assertIn('Check in with yourself.', page_text)
         self.assertFalse(self.page.locator('.bottom-nav').count())
         self.assertFalse(self.page.locator('#nav-toggle').count())
         self.assertFalse(self.page.get_by_role('link', name='About').count())

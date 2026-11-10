@@ -4,11 +4,11 @@ from .models import IntakeResponse
 
 
 LIKERT_CHOICES = [
-    ('1', '1'),
-    ('2', '2'),
-    ('3', '3'),
-    ('4', '4'),
-    ('5', '5'),
+    ('1', '1 - Never'),
+    ('2', '2 - Rarely'),
+    ('3', '3 - Sometimes'),
+    ('4', '4 - Often'),
+    ('5', '5 - Very often'),
 ]
 
 SURVEY_BLOCKS = [

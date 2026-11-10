@@ -46,7 +46,13 @@ class IntakeFormTests(TestCase):
     def test_intake_form_uses_one_to_five_likert_choices(self):
         form = IntakeResponseForm()
 
-        expected_choices = [('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')]
+        expected_choices = [
+            ('1', '1 - Never'),
+            ('2', '2 - Rarely'),
+            ('3', '3 - Sometimes'),
+            ('4', '4 - Often'),
+            ('5', '5 - Very often'),
+        ]
         for index in range(1, 21):
             self.assertEqual(list(form.fields[f'q{index}'].widget.choices), expected_choices)
 

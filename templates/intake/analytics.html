@@ -28,7 +28,7 @@
         <section class="analytics-section analytics-model-card">
             <div class="analytics-model-card__header">
                 <div>
-                    <span class="eyebrow">Experimental estimate</span>
+                    <span class="eyebrow">Experimental</span>
                     <h3>Possible next support level</h3>
                 </div>
                 {% if model_prediction %}
@@ -36,7 +36,7 @@
                 {% endif %}
             </div>
             <p class="analytics-muted">
-                This is an offline research estimate based on {% if is_counselor_review %}this student's{% else %}your{% endif %} previous check-ins.
+                This offline research result is based on {% if is_counselor_review %}this student's{% else %}your{% endif %} previous check-ins.
                 It is not a diagnosis, does not replace your official check-in result,
                 and does not trigger alerts.
             </p>
@@ -48,7 +48,7 @@
                                 <span>{{ label }}</span>
                                 <strong>{{ probability|floatformat:1 }}%</strong>
                             </div>
-                            <div class="analytics-bar" role="progressbar" aria-valuenow="{{ probability }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ label }} estimate probability">
+                            <div class="analytics-bar" role="progressbar" aria-valuenow="{{ probability }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ label }} probability">
                                 <span style="width: {{ probability }}%"></span>
                             </div>
                         </div>
@@ -56,9 +56,9 @@
                 </div>
                 <small class="analytics-model-warning">{{ model_prediction.warning }}</small>
             {% elif model_unavailable %}
-                <p class="analytics-muted">The estimate is temporarily unavailable.</p>
+                <p class="analytics-muted">The offline research model is not available in this app environment.</p>
             {% else %}
-                <p class="analytics-muted">Complete at least two check-ins to see an experimental estimate.</p>
+                <p class="analytics-muted">Complete at least two check-ins to see an experimental result.</p>
             {% endif %}
         </section>
 

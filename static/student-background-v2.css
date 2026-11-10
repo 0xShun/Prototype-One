@@ -1,0 +1,65 @@
+body {
+  background-color: #f7fbff;
+  background-image:
+    url("doodle-pencil.svg"),
+    url("doodle-book.svg"),
+    url("doodle-basketball.svg"),
+    url("doodle-ruler.svg"),
+    url("doodle-pencil.svg"),
+    url("doodle-lightbulb.svg"),
+    url("doodle-gradcap.svg"),
+    url("doodle-star.svg"),
+    url("doodle-paperclip.svg"),
+    url("doodle-star.svg"),
+    url("doodle-book.svg"),
+    radial-gradient(ellipse at 2% 12%, rgba(108, 174, 255, 0.16), transparent 28rem),
+    radial-gradient(ellipse at 96% 62%, rgba(113, 204, 255, 0.14), transparent 30rem),
+    linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+  background-repeat: no-repeat;
+  background-position: 3% 12%, 94% 28%, 14% 73%, 88% 90%, 60% 51%, 30% 8%, 72% 10%, 45% 30%, 6% 45%, 80% 55%, 40% 92%, center, center, center;
+  background-size: 180px auto, 160px auto, 155px auto, 200px auto, 140px auto, 130px auto, 190px auto, 120px auto, 90px auto, 110px auto, 140px auto, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+.public-home .banner-hero {
+  background-image:
+    url("doodle-pencil.svg"),
+    url("doodle-book.svg"),
+    radial-gradient(ellipse at 100% 0%, rgba(135, 192, 255, 0.22), transparent 48%),
+    linear-gradient(135deg, #f8fbff 12%, #eef6ff 58%, #e8f4ff 100%);
+  background-repeat: no-repeat;
+  background-position: 96% 6%, 3% 96%, center, center;
+  background-size: 150px auto, 125px auto, auto, auto;
+}
+
+/* Text-heavy pages: soften the doodles so copy stays readable */
+body:has(.shell > .form-card:not(.support-page))::after,
+body:has(.banner-hero--content)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(244, 249, 255, 0.72);
+  pointer-events: none;
+}
+
+/* Desktop only: soften doodles behind the support pages' headings */
+@media (min-width: 1024px) {
+  body:has(.support-page)::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(244, 249, 255, 0.55);
+    pointer-events: none;
+  }
+}
+
+body:has(.messages-page)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(244, 249, 255, 0.6);
+  pointer-events: none;
+}

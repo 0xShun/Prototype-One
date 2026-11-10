@@ -1,36 +1,70 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="banner-hero">
-    <div>
-        <h1>Check in with yourself.</h1>
-        <p>A private, simple way to notice how school is feeling.</p>
-        <div class="hero-actions">
-            {% if user.is_authenticated %}
-                <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
-                <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
-            {% else %}
-                <a class="btn btn-primary" href="{% url 'register' %}">Create an account</a>
-                <a class="btn btn-secondary" href="{% url 'login' %}">Sign in</a>
-            {% endif %}
+<div class="public-home">
+    <section class="banner-hero" aria-labelledby="home-hero-title">
+        <div class="banner-hero__copy">
+            <span class="home-kicker">
+                <svg class="ui-icon" aria-hidden="true"><use href="#icon-info"></use></svg>
+                Your wellbeing matters
+            </span>
+            <h1 id="home-hero-title">Check in with <span>yourself.</span></h1>
+            <p>A private, simple way to notice how school is feeling.</p>
+            <div class="hero-actions">
+                {% if user.is_authenticated %}
+                    <a class="btn btn-primary" href="{% url 'intake:create' %}">Start a check-in</a>
+                    <a class="btn btn-secondary" href="{% url 'intake:history' %}">View progress</a>
+                {% else %}
+                    <a class="btn btn-primary" href="{% url 'register' %}">Create an account</a>
+                    <a class="btn btn-secondary" href="{% url 'login' %}">Sign in</a>
+                {% endif %}
+            </div>
         </div>
+        <div class="home-visual" aria-hidden="true">
+            <div class="home-visual__halo"></div>
+            <div class="home-visual__spark home-visual__spark--one"></div>
+            <div class="home-visual__spark home-visual__spark--two"></div>
+            <div class="home-visual__note home-visual__note--top">
+                <svg class="ui-icon"><use href="#icon-check-in"></use></svg>
+                A moment for you
+            </div>
+            <div class="home-visual__panel">
+                <div class="home-visual__panel-header">
+                    <span class="home-visual__panel-icon">
+                        <svg class="ui-icon"><use href="#icon-chart"></use></svg>
+                    </span>
+                    <span><strong>Your week</strong><small>Small steps count</small></span>
+                </div>
+                <div class="home-visual__chart">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="home-visual__panel-footer">
+                    <span></span>
+                    A little reflection goes a long way
+                </div>
+            </div>
+            <div class="home-visual__note home-visual__note--bottom">
+                <span class="home-visual__heart">♥</span>
+                You are not alone
+            </div>
+        </div>
+    </section>
+    <div class="grid home-steps" aria-label="How StudentSense works">
+        <article class="card home-step">
+            <span class="home-card__icon">1</span>
+            <div><h3>Check in</h3><p>A few quick questions.</p></div>
+            <svg class="ui-icon home-step__icon" aria-hidden="true"><use href="#icon-check-in"></use></svg>
+        </article>
+        <article class="card home-step">
+            <span class="home-card__icon">2</span>
+            <div><h3>See your result</h3><p>Simple, supportive guidance.</p></div>
+            <svg class="ui-icon home-step__icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+        </article>
+        <article class="card home-step">
+            <span class="home-card__icon">3</span>
+            <div><h3>Choose your next step</h3><p>Keep tracking or reach out.</p></div>
+            <svg class="ui-icon home-step__icon" aria-hidden="true"><use href="#icon-message"></use></svg>
+        </article>
     </div>
+    {% include 'home_sections.html' %}
 </div>
-<div class="grid">
-    <div class="card">
-        <span class="home-card__icon">1</span>
-        <h3>Check in</h3>
-        <p>A few quick questions.</p>
-    </div>
-    <div class="card">
-        <span class="home-card__icon">2</span>
-        <h3>See your result</h3>
-        <p>Simple, supportive guidance.</p>
-    </div>
-    <div class="card">
-        <span class="home-card__icon">3</span>
-        <h3>Choose your next step</h3>
-        <p>Keep tracking or reach out.</p>
-    </div>
-</div>
-{% include 'home_sections.html' %}
 {% endblock %}

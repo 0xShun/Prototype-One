@@ -10,11 +10,15 @@ class PublicPageTests(TestCase):
         response = self.client.get(reverse('home'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Check in with yourself.')
+        self.assertContains(response, 'Check in with')
+        self.assertContains(response, 'yourself.')
         self.assertContains(response, 'Create an account')
         self.assertContains(response, 'Sign in')
         self.assertContains(response, 'About the platform')
         self.assertContains(response, 'How to use it')
+        self.assertContains(response, 'class="public-home"')
+        self.assertContains(response, 'Your wellbeing matters')
+        self.assertContains(response, 'class="home-visual" aria-hidden="true"')
 
     def test_base_template_includes_pwa_support(self):
         response = self.client.get(reverse('home'))
@@ -29,6 +33,33 @@ class PublicPageTests(TestCase):
 
         self.assertIn('offline.html', service_worker_content)
         self.assertIn('fetch', service_worker_content)
+
+    def test_scattered_background_is_shared_and_available_offline(self):
+        static_dir = Path(settings.BASE_DIR) / 'static'
+        background_css = (static_dir / 'student-background-v2.css').read_text(encoding='utf-8')
+        service_worker = (static_dir / 'sw.js').read_text(encoding='utf-8')
+        assets = (
+            'student-background-v2.css',
+            'doodle-pencil.svg',
+            'doodle-book.svg',
+            'doodle-basketball.svg',
+            'doodle-ruler.svg',
+        )
+        for asset in assets:
+            with self.subTest(asset=asset):
+                self.assertTrue((static_dir / asset).is_file())
+                self.assertIn(f'/static/{asset}', service_worker)
+                if asset.endswith('.svg'):
+                    self.assertIn(f'url("{asset}")', background_css)
+
+        self.assertIn('background-repeat: no-repeat', background_css)
+        for route in ('home', 'about', 'login', 'register', 'offline'):
+            with self.subTest(route=route):
+                self.assertContains(self.client.get(reverse(route)), 'student-background-v2.css')
+        self.assertIn(
+            '/static/student-background-v2.css',
+            (static_dir / 'offline.html').read_text(encoding='utf-8'),
+        )
 
     def test_service_worker_route_is_available_at_root_scope(self):
         response = self.client.get(reverse('service_worker'))

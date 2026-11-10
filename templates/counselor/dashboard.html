@@ -1,9 +1,28 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="form-card support-page">
     <h2>Student support</h2>
     <p>Students with Urgent or Elevated support signals are shown first for counselor review.</p>
 
+    <div class="filter-bar" data-filter-bar>
+        <input type="search" data-filter="search" placeholder="Search student, message or reason" aria-label="Search">
+        <select data-filter="section" aria-label="Section">
+            <option value="">All sections</option>
+            <option value="urgent">Urgent requests</option>
+            <option value="referrals">Teacher referrals</option>
+            <option value="attention">Students needing attention</option>
+        </select>
+        <select data-filter="level" aria-label="Support level">
+            <option value="">All levels</option>
+            <option value="High">Urgent</option>
+            <option value="Moderate">Elevated</option>
+        </select>
+        <button type="button" class="btn btn-secondary" data-filter-reset>Reset</button>
+    </div>
+    <p class="filter-empty" hidden>Nothing matches your filters.</p>
+
+    <section data-section="urgent">
     <h3>Urgent requests</h3>
     {% if urgent_requests %}
         <div class="table-wrap">
@@ -28,31 +47,9 @@
         </div>
     {% else %}<p>No urgent requests waiting.</p>{% endif %}
 
-    <h3>Unassigned requests</h3>
-    {% if unassigned_requests %}
-        <div class="table-wrap">
-            <table class="support-table">
-                <thead><tr><th>Student</th><th>Status</th><th>Latest message</th><th>Updated</th><th>Action</th></tr></thead>
-                <tbody>
-                    {% for request in unassigned_requests %}
-                        <tr>
-                            <td data-label="Student">{{ request.student.first_name|default:request.student.username }}</td>
-                            <td data-label="Status">{{ request.status }}</td>
-                            <td data-label="Latest message">{{ request.messages.last.body }}</td>
-                            <td data-label="Updated">{{ request.updated_at|date:"M d, Y g:i A" }}</td>
-                            <td data-label="Action">
-                                <form method="post" action="{% url 'counselor:open_support_conversation' request.id %}">
-                                    {% csrf_token %}
-                                    <button class="btn btn-secondary" type="submit">Review request</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}<p>No unassigned requests.</p>{% endif %}
+    </section>
 
+    <section data-section="referrals">
     <h3>Teacher referrals</h3>
     {% if teacher_referrals %}
         <div class="table-wrap">
@@ -78,10 +75,15 @@
         </div>
     {% else %}<p>No new teacher referrals.</p>{% endif %}
 
+    </section>
+
+    <section data-section="attention">
     <h3>Students needing attention</h3>
     {% if students %}
         {% include "counselor/_student_support_table.html" with student_items=students %}
     {% else %}<p>All students are showing healthy stress levels. Great work!</p>{% endif %}
+    </section>
 
 </div>
+<script src="{% static 'table-filters.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <g transform="rotate(-16 50 50)" stroke="#4F7CFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".42">
+    <circle cx="50" cy="50" r="41"/>
+    <path d="M9 50h82M50 9v82M21 21c18 9 27 19 29 29s11 20 29 29M79 21C61 30 52 40 50 50S39 70 21 79"/>
+  </g>
+</svg>

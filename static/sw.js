@@ -1,9 +1,18 @@
-const CACHE_NAME = 'studentsense-cache-v2';
+const CACHE_NAME = 'studentsense-cache-v5';
 const APP_SHELL = [
   '/',
   '/offline/',
   '/static/offline.html',
   '/static/styles.css',
+  '/static/student-background-v2.css',
+  '/static/doodle-pencil.svg',
+  '/static/doodle-book.svg',
+  '/static/doodle-basketball.svg',
+  '/static/doodle-ruler.svg',
+  '/static/doodle-lightbulb.svg',
+  '/static/doodle-gradcap.svg',
+  '/static/doodle-star.svg',
+  '/static/doodle-paperclip.svg',
   '/static/manifest.json',
   '/static/logo.png'
 ];
