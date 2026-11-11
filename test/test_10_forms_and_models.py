@@ -17,15 +17,15 @@ class RegistrationFormTests(TestCase):
                 'email': 'newstudent@example.com',
                 'password1': 'StrongPass123!',
                 'password2': 'StrongPass123!',
-                'program': 'Computer Science',
-                'year_level': '2',
+                'program': 'STEM',
+                'year_level': '11',
             }
         )
 
         self.assertTrue(form.is_valid())
         user = form.save()
         self.assertEqual(user.username, 'newstudent')
-        self.assertEqual(user.studentprofile.program, 'Computer Science')
+        self.assertEqual(user.studentprofile.program, 'STEM')
 
     def test_registration_form_requires_profile_fields(self):
         form = StudentRegistrationForm(
@@ -38,8 +38,29 @@ class RegistrationFormTests(TestCase):
         )
 
         self.assertFalse(form.is_valid())
-        self.assertIn('program', form.errors)
         self.assertIn('year_level', form.errors)
+
+    def test_grade_and_strand_validation(self):
+        base = {
+            'username': 'newstudent',
+            'email': 'newstudent@example.com',
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+        }
+        for grade in ('7', '8', '9', '10'):
+            form = StudentRegistrationForm({**base, 'year_level': grade, 'program': 'STEM'})
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.cleaned_data['program'], '')
+        for grade in ('11', '12'):
+            for strand in ('STEM', 'GAS', 'ABM', 'HUMSS', 'TVL'):
+                form = StudentRegistrationForm({**base, 'year_level': grade, 'program': strand})
+                self.assertTrue(form.is_valid(), form.errors)
+            form = StudentRegistrationForm({**base, 'year_level': grade})
+            self.assertFalse(form.is_valid())
+            self.assertIn('program', form.errors)
+        for grade, strand in (('6', ''), ('13', ''), ('11', 'invalid')):
+            form = StudentRegistrationForm({**base, 'year_level': grade, 'program': strand})
+            self.assertFalse(form.is_valid())
 
 
 class IntakeFormTests(TestCase):

@@ -443,6 +443,36 @@ class CounselorAccessTests(TestCase):
         self.assertTrue(UserNotification.objects.filter(recipient=self.counselor, kind=UserNotification.Kind.URGENT_HELP).exists())
         self.assertTrue(UserNotification.objects.filter(recipient=second_counselor, kind=UserNotification.Kind.URGENT_HELP).exists())
         self.assertTrue(UserNotification.objects.filter(recipient=self.high_student, kind=UserNotification.Kind.URGENT_HELP).exists())
+        self.assertIn(f'request_id={urgent_request.id}', response.url)
+
+    def test_dashboard_shows_unreviewed_urgent_requests_owned_by_current_counselor(self):
+        other = create_counselor('otherurgent')
+        unassigned = StudentContactRequest.objects.create(
+            student=self.high_student, priority='Urgent', message='Unassigned urgent request',
+        )
+        assigned = StudentContactRequest.objects.create(
+            student=self.moderate_student, assigned_counselor=self.counselor,
+            priority='Urgent', message='Assigned urgent request',
+        )
+        hidden = StudentContactRequest.objects.create(
+            student=self.low_student, assigned_counselor=other,
+            priority='Urgent', message='Other counselor request',
+        )
+        self.client.force_login(self.counselor)
+        response = self.client.get(reverse('counselor:dashboard'))
+        self.assertEqual({r.id for r in response.context['urgent_requests']}, {unassigned.id, assigned.id})
+        self.assertNotContains(response, hidden.student.username)
+
+        response = self.client.post(reverse('counselor:open_support_conversation', args=[assigned.id]))
+        self.assertRedirects(response, reverse('counselor:contact_request_detail', args=[assigned.id]))
+        assigned.refresh_from_db()
+        self.assertIsNotNone(assigned.dashboard_reviewed_at)
+        self.assertEqual(self.client.post(reverse('counselor:open_support_conversation', args=[hidden.id])).status_code, 404)
+
+    def test_urgent_help_page_renders_form(self):
+        self.client.force_login(self.high_student)
+        response = self.client.get(reverse('counselor:urgent_help'))
+        self.assertContains(response, 'Send urgent request')
 
     def test_student_books_whole_slot_and_cancellation_releases_it(self):
         appointment_date = timezone.localdate() + timedelta(days=2)

@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
+from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
@@ -14,7 +15,7 @@ from counselor.models import ContactMessage, StudentContactRequest
 from accounts.models import UserNotification
 from intake.views import _generate_survey_result
 
-from .helpers import create_result_for_student, create_student
+from .helpers import create_counselor, create_result_for_student, create_student
 
 
 class IntakeFlowTests(TestCase):
@@ -40,6 +41,35 @@ class IntakeFlowTests(TestCase):
             self.assertTrue(urgent_request.initiated_by_system)
             self.assertEqual(urgent_request.messages.first().sender, ContactMessage.Sender.SYSTEM)
             self.assertTrue(UserNotification.objects.filter(recipient=self.student, kind=UserNotification.Kind.URGENT_HELP).exists())
+
+    def test_new_high_result_returns_reviewed_conversation_to_dashboard(self):
+        counselor = create_counselor('highfollowup')
+        thread = StudentContactRequest.objects.create(
+            student=self.student,
+            assigned_counselor=counselor,
+            is_general_chat=True,
+            priority=StudentContactRequest.Priority.URGENT,
+            dashboard_reviewed_at=timezone.now(),
+            message='Previous follow-up',
+        )
+        self.client.force_login(self.student)
+        with patch('intake.views.random.choice', return_value=counselor):
+            self.client.post(reverse('intake:create'), {f'q{i}': 5 for i in range(1, 21)})
+        thread.refresh_from_db()
+        self.assertIsNone(thread.dashboard_reviewed_at)
+        self.assertTrue(UserNotification.objects.filter(recipient=counselor, kind=UserNotification.Kind.URGENT_HELP).exists())
+        self.client.force_login(counselor)
+        response = self.client.get(reverse('counselor:dashboard'))
+        self.assertIn(thread, response.context['urgent_requests'])
+
+    def test_high_result_creates_unassigned_request_without_counselors(self):
+        get_user_model().objects.filter(studentprofile__is_counselor=True).delete()
+        self.client.force_login(self.student)
+        self.client.post(reverse('intake:create'), {f'q{i}': 5 for i in range(1, 21)})
+        thread = StudentContactRequest.objects.get(student=self.student)
+        self.assertIsNone(thread.assigned_counselor)
+        self.assertEqual(thread.priority, StudentContactRequest.Priority.URGENT)
+        self.assertEqual(thread.messages.get().sender, ContactMessage.Sender.SYSTEM)
 
     def test_result_band_is_based_on_survey_blocks(self):
         intake, _ = create_result_for_student(self.student, stress_level='High')

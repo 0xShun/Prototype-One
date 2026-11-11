@@ -30,14 +30,14 @@
                 <thead><tr><th>Student</th><th>Message</th><th>Created</th><th>Action</th></tr></thead>
                 <tbody>
                     {% for request in urgent_requests %}
-                        <tr>
+                        <tr data-level="High">
                             <td data-label="Student">{{ request.student.first_name|default:request.student.username }}</td>
                             <td data-label="Message">{{ request.messages.last.body }}</td>
                             <td data-label="Created">{{ request.created_at|date:"M d, Y g:i A" }}</td>
                             <td data-label="Action">
-                                <form method="post" action="{% url 'counselor:claim_contact_request' request.id %}">
+                                <form method="post" action="{% if request.assigned_counselor_id %}{% url 'counselor:open_support_conversation' request.id %}{% else %}{% url 'counselor:claim_contact_request' request.id %}{% endif %}">
                                     {% csrf_token %}
-                                    <button class="btn btn-primary" type="submit">Review and claim</button>
+                                    <button class="btn btn-primary" type="submit">{% if request.assigned_counselor_id %}Open conversation{% else %}Review and claim{% endif %}</button>
                                 </form>
                             </td>
                         </tr>
@@ -85,5 +85,5 @@
     </section>
 
 </div>
-<script src="{% static 'table-filters.js' %}"></script>
+<script src="{% static 'table-filters.js' %}?v=2"></script>
 {% endblock %}

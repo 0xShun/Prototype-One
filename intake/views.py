@@ -138,6 +138,18 @@ def create_intake(request):
             if stress_level == 'High':
                 support_note = "This student's check-in result is high and needs urgent assistance."
                 counselors = list(get_user_model().objects.filter(studentprofile__is_counselor=True))
+                if not counselors:
+                    conversation = StudentContactRequest.objects.create(
+                        student=request.user,
+                        message=support_note,
+                        initiated_by_system=True,
+                        priority=StudentContactRequest.Priority.URGENT,
+                    )
+                    ContactMessage.objects.create(
+                        thread=conversation,
+                        sender=ContactMessage.Sender.SYSTEM,
+                        body=support_note,
+                    )
                 if counselors:
                     counselor = random.choice(counselors)
                     conversation = StudentContactRequest.objects.filter(
@@ -160,7 +172,8 @@ def create_intake(request):
                     conversation.priority = StudentContactRequest.Priority.URGENT
                     conversation.status = StudentContactRequest.Status.OPEN
                     conversation.is_general_chat = True
-                    conversation.save(update_fields=['priority', 'status', 'is_general_chat', 'updated_at'])
+                    conversation.dashboard_reviewed_at = None
+                    conversation.save(update_fields=['priority', 'status', 'is_general_chat', 'dashboard_reviewed_at', 'updated_at'])
                     ContactMessage.objects.create(
                         thread=conversation,
                         sender=ContactMessage.Sender.SYSTEM,
@@ -168,6 +181,13 @@ def create_intake(request):
                     )
                     from accounts.notifications import notify_user
 
+                    notify_user(
+                        counselor,
+                        kind='Urgent help',
+                        title='Urgent student check-in',
+                        body=f'{request.user.get_full_name() or request.user.username} has a high check-in result.',
+                        target_url=reverse('counselor:dashboard'),
+                    )
                     notify_user(
                         request.user,
                         kind='Urgent help',

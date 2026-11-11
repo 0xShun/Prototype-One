@@ -1,12 +1,21 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="auth-card">
     <h2>Create your account</h2>
     <p>Set up your StudentSense profile and begin your first check-in.</p>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        {% for field in form %}
+            <p{% if field.name == 'program' %} id="strand-field"{% endif %}>
+                {{ field.label_tag }} {{ field }}
+                {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+                {{ field.errors }}
+            </p>
+        {% endfor %}
+        {{ form.non_field_errors }}
         <button class="btn btn-primary" type="submit">Register</button>
     </form>
 </div>
+<script src="{% static 'student-registration.js' %}"></script>
 {% endblock %}

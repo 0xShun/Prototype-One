@@ -17,8 +17,8 @@ class AccountFlowTests(TestCase):
                 'email': 'accountstudent@example.com',
                 'password1': 'StrongPass123!',
                 'password2': 'StrongPass123!',
-                'program': 'Psychology',
-                'year_level': '3',
+                'program': 'STEM',
+                'year_level': '11',
             },
         )
 
@@ -68,14 +68,26 @@ class AccountFlowTests(TestCase):
                 'email': 'profilestudent@example.com',
                 'password1': 'StrongPass123!',
                 'password2': 'StrongPass123!',
-                'program': 'Biology',
-                'year_level': '1',
+                'program': 'ABM',
+                'year_level': '12',
             },
         )
 
         user = get_user_model().objects.get(username='profilestudent')
-        self.assertEqual(user.studentprofile.program, 'Biology')
-        self.assertEqual(user.studentprofile.year_level, '1')
+        self.assertEqual(user.studentprofile.program, 'ABM')
+        self.assertEqual(user.studentprofile.year_level, '12')
+
+    def test_junior_student_registers_without_strand(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'juniorstudent',
+            'email': 'juniorstudent@example.com',
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+            'year_level': '7',
+        })
+        self.assertEqual(response.status_code, 302)
+        profile = get_user_model().objects.get(username='juniorstudent').studentprofile
+        self.assertEqual((profile.year_level, profile.program), ('7', ''))
 
     def test_teacher_signup_requires_admin_approval_before_teacher_tools(self):
         response = self.client.post(reverse('register_teacher'), {

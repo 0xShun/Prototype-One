@@ -138,7 +138,7 @@ def dashboard(request):
         if request.priority == StudentContactRequest.Priority.ROUTINE
     ]
     urgent_requests = [
-        request for request in unassigned_requests
+        request for request in visible_requests
         if request.priority == StudentContactRequest.Priority.URGENT
     ]
     referrals = [
@@ -570,7 +570,7 @@ def open_support_conversation(request, request_id):
     )
     contact_request.dashboard_reviewed_at = timezone.now()
     contact_request.save(update_fields=['dashboard_reviewed_at', 'updated_at'])
-    return redirect('counselor:counselor_conversation', student_id=contact_request.student_id)
+    return redirect('counselor:contact_request_detail', request_id=contact_request.id)
 
 
 @counselor_required
@@ -1266,9 +1266,10 @@ def urgent_help(request):
             kind=UserNotification.Kind.URGENT_HELP,
             title='Urgent support request received',
             body='Your urgent support request was sent to the counseling team.',
-            target_url=reverse('counselor:messages_home'),
+            target_url=f'{reverse("counselor:contact_request")}?request_id={contact_request.id}',
         )
-    return redirect('counselor:messages_home')
+        return redirect(f'{reverse("counselor:contact_request")}?request_id={contact_request.id}')
+    return render(request, 'counselor/urgent_help.html', {'form': StudentContactRequestForm()})
 
 
 @login_required

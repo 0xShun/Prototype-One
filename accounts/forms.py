@@ -7,14 +7,30 @@ from .models import StudentProfile
 
 class StudentRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
-    program = forms.CharField(max_length=100, required=True, label='Strand')
-    year_level = forms.CharField(max_length=20, required=True)
+    year_level = forms.ChoiceField(
+        choices=[('', 'Select grade level')] + [(str(grade), f'Grade {grade}') for grade in range(7, 13)],
+        label='Grade level',
+    )
+    program = forms.ChoiceField(
+        choices=[('', 'Select strand')] + [(strand, strand) for strand in ('STEM', 'GAS', 'ABM', 'HUMSS', 'TVL')],
+        required=False,
+        label='Strand',
+    )
     age = forms.IntegerField(min_value=10, max_value=100, required=False)
     section = forms.CharField(max_length=50, required=False)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password1', 'password2', 'program', 'year_level', 'age', 'section')
+        fields = ('username', 'email', 'password1', 'password2', 'year_level', 'program', 'age', 'section')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        grade = cleaned_data.get('year_level')
+        if grade in ('11', '12') and not cleaned_data.get('program') and 'program' not in self.errors:
+            self.add_error('program', 'Select a strand for Grade 11 or Grade 12.')
+        elif grade in ('7', '8', '9', '10'):
+            cleaned_data['program'] = ''
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)

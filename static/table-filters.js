@@ -25,7 +25,8 @@
       var sectionRows = section.querySelectorAll('tbody tr');
       var anyVisible = !sectionRows.length || Array.prototype.some.call(sectionRows, function (r) { return !r.hidden; });
       var filtering = Object.keys(active).some(function (k) { return active[k]; });
-      section.hidden = filtering && !anyVisible;
+      var wrongSection = active.section && section.dataset.section !== active.section;
+      section.hidden = Boolean(wrongSection || (filtering && (!anyVisible || (!sectionRows.length && (active.search || active.level)))));
     });
     if (empty) empty.hidden = shown > 0 || !rows.length;
   }
