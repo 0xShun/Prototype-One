@@ -1,16 +1,20 @@
 from functools import wraps
+import calendar
+import re
 from datetime import date, datetime, timedelta
+from urllib.parse import urlencode
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.messages import get_messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date
 
 from accounts.models import StudentProfile
 from intake.models import IntakeResponse, Result
@@ -975,8 +979,44 @@ def _available_slots(start_date, days=30, counselor_id=None):
     return slots
 
 
+def _calendar_selection(request):
+    today = timezone.localdate()
+    month_value = request.GET.get('month', '')
+    if month_value:
+        if not re.fullmatch(r'\d{4}-\d{2}', month_value):
+            raise ValueError('Invalid calendar month.')
+        year, month = map(int, month_value.split('-'))
+        if not 1901 <= year <= 9998 or not 1 <= month <= 12:
+            raise ValueError('Invalid calendar month.')
+        first = date(year, month, 1)
+    else:
+        first = today.replace(day=1)
+    selected_value = request.GET.get('date', '')
+    selected = parse_date(selected_value) if selected_value else (today if first == today.replace(day=1) else first)
+    if not selected or (selected.year, selected.month) != (first.year, first.month):
+        raise ValueError('The selected date must be in the displayed month.')
+    month_days = calendar.monthrange(first.year, first.month)[1]
+    dates = [first + timedelta(days=offset) for offset in range(month_days)]
+    previous = first - timedelta(days=1) if first.year > 1901 or first.month > 1 else None
+    next_month = first + timedelta(days=month_days) if first.year < 9998 or first.month < 12 else None
+    return {
+        'month_start': first,
+        'month_value': first.strftime('%Y-%m'),
+        'previous_month': previous.strftime('%Y-%m') if previous else None,
+        'next_month': next_month.strftime('%Y-%m') if next_month else None,
+        'selected_date': selected,
+        'today': today,
+        'dates': dates,
+        'leading_days': range(first.weekday()),
+    }
+
+
 @counselor_required
 def counselor_availability(request):
+    try:
+        calendar_context = _calendar_selection(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
     availability_form = CounselorAvailabilityForm(request.POST or None, counselor=request.user, prefix='availability')
     unavailable_form = CounselorUnavailableTimeForm(request.POST or None, prefix='unavailable')
     if request.method == 'POST' and 'save_availability' in request.POST and availability_form.is_valid():
@@ -988,7 +1028,7 @@ def counselor_availability(request):
             rule.counselor = request.user
             rule.save()
             messages.success(request, 'One-time availability saved.')
-            return redirect('counselor:availability')
+            return redirect(f'{reverse("counselor:availability")}?month={rule.effective_from:%Y-%m}&date={rule.effective_from:%Y-%m-%d}')
     if request.method == 'POST' and 'save_unavailable' in request.POST and unavailable_form.is_valid():
         period = unavailable_form.save(commit=False)
         period.counselor = request.user
@@ -1001,33 +1041,36 @@ def counselor_availability(request):
             period.save()
             messages.success(request, 'Unavailable time saved.')
             return redirect('counselor:availability')
-    today = timezone.localdate()
-    calendar_start = today - timedelta(days=today.weekday())
+    today = calendar_context['today']
     calendar_days = []
     rules = list(CounselorAvailability.objects.filter(counselor=request.user, is_active=True))
+    month_start = timezone.make_aware(datetime.combine(calendar_context['dates'][0], datetime.min.time()), timezone.get_current_timezone())
+    month_end = timezone.make_aware(datetime.combine(calendar_context['dates'][-1] + timedelta(days=1), datetime.min.time()), timezone.get_current_timezone())
     unavailable_periods = list(
         CounselorUnavailableTime.objects.filter(
             counselor=request.user,
-            ends_at__gte=timezone.now(),
+            starts_at__lt=month_end,
+            ends_at__gt=month_start,
         )
     )
     bookings = list(
         AppointmentBooking.objects.filter(
             counselor=request.user,
             status=AppointmentBooking.Status.BOOKED,
-            ends_at__gte=timezone.now(),
+            starts_at__lt=month_end,
+            ends_at__gt=month_start,
         ).select_related('student').order_by('starts_at')
     )
 
-    for day_offset in range(35):
-        day = calendar_start + timedelta(days=day_offset)
+    for day in calendar_context['dates']:
         events = []
         for period in unavailable_periods:
             period_start = timezone.localtime(period.starts_at)
             period_end = timezone.localtime(period.ends_at)
-            if period_start.date() <= day <= period_end.date():
+            if period_start.date() <= day <= (period_end - timedelta(microseconds=1)).date():
                 events.append({
                     'kind': 'unavailable',
+                    'starts_at': period_start,
                     'label': f'{period_start.strftime("%I:%M %p").lstrip("0")} to {period_end.strftime("%I:%M %p").lstrip("0")}',
                     'detail': period.reason or 'Unavailable',
                 })
@@ -1037,10 +1080,13 @@ def counselor_availability(request):
             if booking_start.date() == day:
                 events.append({
                     'kind': 'booked',
+                    'starts_at': booking_start,
                     'label': f'{booking_start.strftime("%I:%M %p").lstrip("0")} to {booking_end.strftime("%I:%M %p").lstrip("0")}',
                     'detail': booking.student.get_full_name() or booking.student.username,
                 })
         for rule in rules:
+            if day <= today:
+                continue
             if day.weekday() != rule.weekday:
                 continue
             if day < rule.effective_from or (rule.effective_until and day > rule.effective_until):
@@ -1055,25 +1101,32 @@ def counselor_availability(request):
                 continue
             events.append({
                 'kind': 'available',
+                'starts_at': starts_at,
                 'label': f'{rule.start_time.strftime("%I:%M %p").lstrip("0")} to {rule.end_time.strftime("%I:%M %p").lstrip("0")}',
                 'detail': 'Available',
             })
-        events.sort(key=lambda event: event['label'])
+        events.sort(key=lambda event: event['starts_at'])
         calendar_days.append({
             'date': day,
             'is_today': day == today,
             'is_past': day < today,
             'is_selectable': day > today,
             'events': events,
+            'has_available': any(event['kind'] == 'available' for event in events),
+            'has_booked': any(event['kind'] == 'booked' for event in events),
+            'has_unavailable': any(event['kind'] == 'unavailable' for event in events),
         })
 
     return render(request, 'counselor/availability.html', {
+        **calendar_context,
         'availability_form': availability_form,
         'unavailable_form': unavailable_form,
         'rules': rules,
         'unavailable_periods': unavailable_periods,
         'bookings': [booking for booking in bookings if booking.starts_at >= timezone.now()],
         'calendar_days': calendar_days,
+        'selected_day': next(day for day in calendar_days if day['date'] == calendar_context['selected_date']),
+        'availability_errors': request.method == 'POST' and 'save_availability' in request.POST and bool(availability_form.errors),
     })
 
 
@@ -1106,57 +1159,67 @@ def appointment_calendar(request):
     counselors = get_user_model().objects.filter(
         studentprofile__is_counselor=True,
     ).select_related('studentprofile').order_by('last_name', 'first_name', 'username')
+    try:
+        calendar_context = _calendar_selection(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
     selected_id = request.GET.get('counselor_id') or (str(counselors.first().id) if counselors.exists() else '')
+    if selected_id and not selected_id.isdecimal():
+        return HttpResponseBadRequest('Invalid counselor.')
     selected_counselor = counselors.filter(id=selected_id).first() if selected_id else None
-    calendar_days = _appointment_calendar_days(selected_counselor)
+    calendar_days = _appointment_calendar_days(selected_counselor, calendar_context['dates'])
     return render(request, 'counselor/appointment_calendar.html', {
+        **calendar_context,
         'counselors': counselors,
         'selected_counselor': selected_counselor,
         'calendar_days': calendar_days,
-        'today': timezone.localdate(),
+        'selected_day': next(day for day in calendar_days if day['date'] == calendar_context['selected_date']),
     })
 
 
-def _appointment_calendar_days(counselor):
+def _appointment_calendar_days(counselor, dates):
     today = timezone.localdate()
-    calendar_start = today - timedelta(days=today.weekday())
-    days = [{'date': calendar_start + timedelta(days=offset), 'slots': []} for offset in range(35)]
+    days = [{'date': day, 'slots': []} for day in dates]
     if not counselor:
         return days
 
-    rules = CounselorAvailability.objects.filter(
+    rules = list(CounselorAvailability.objects.filter(
         counselor=counselor,
         is_active=True,
-    )
-    bookings = AppointmentBooking.objects.filter(
+    ))
+    bookings = list(AppointmentBooking.objects.filter(
         counselor=counselor,
         status=AppointmentBooking.Status.BOOKED,
         ends_at__gte=timezone.now(),
-    )
-    unavailable_periods = CounselorUnavailableTime.objects.filter(
+    ))
+    unavailable_periods = list(CounselorUnavailableTime.objects.filter(
         counselor=counselor,
         ends_at__gte=timezone.now(),
-    )
+    ))
     now = timezone.now()
     for day in days:
         date_value = day['date']
         if date_value <= today:
             continue
-        for rule in rules.filter(weekday=date_value.weekday()):
-            if date_value < rule.effective_from or (rule.effective_until and date_value > rule.effective_until):
+        for rule in rules:
+            if date_value.weekday() != rule.weekday or date_value < rule.effective_from or (rule.effective_until and date_value > rule.effective_until):
                 continue
             starts_at = timezone.make_aware(datetime.combine(date_value, rule.start_time), timezone.get_current_timezone())
             ends_at = timezone.make_aware(datetime.combine(date_value, rule.end_time), timezone.get_current_timezone())
             if starts_at <= now:
                 continue
-            booking = bookings.filter(starts_at__lt=ends_at, ends_at__gt=starts_at).first()
-            unavailable = unavailable_periods.filter(starts_at__lt=ends_at, ends_at__gt=starts_at).exists()
+            booking = any(item.starts_at < ends_at and item.ends_at > starts_at for item in bookings)
+            unavailable = any(item.starts_at < ends_at and item.ends_at > starts_at for item in unavailable_periods)
             day['slots'].append({
                 'availability': rule,
                 'starts_at': starts_at,
                 'ends_at': ends_at,
                 'status': 'booked' if booking else ('unavailable' if unavailable else 'available'),
             })
+        day['slots'].sort(key=lambda slot: slot['starts_at'])
+        day['has_available'] = any(slot['status'] == 'available' for slot in day['slots'])
+        day['has_booked'] = any(slot['status'] == 'booked' for slot in day['slots'])
+        day['has_unavailable'] = any(slot['status'] == 'unavailable' for slot in day['slots'])
     return days
 
 
@@ -1176,23 +1239,24 @@ def book_appointment(request):
     with transaction.atomic():
         rule = get_object_or_404(CounselorAvailability.objects.select_for_update(), id=availability_id, is_active=True)
         day = timezone.localtime(starts_at).date()
+        calendar_url = f'{reverse("counselor:appointment_calendar")}?{urlencode({"counselor_id": rule.counselor_id, "month": day.strftime("%Y-%m"), "date": day.isoformat()})}'
         if day < timezone.localdate() + timedelta(days=1) or day.weekday() != rule.weekday:
             messages.error(request, 'Choose an available future slot.')
-            return redirect('counselor:appointment_calendar')
+            return redirect(calendar_url)
         if day < rule.effective_from or (rule.effective_until and day > rule.effective_until):
             messages.error(request, 'That recurring time is not active on the selected date.')
-            return redirect('counselor:appointment_calendar')
+            return redirect(calendar_url)
         local_start = timezone.localtime(starts_at)
         if local_start.time().replace(second=0, microsecond=0) != rule.start_time.replace(second=0, microsecond=0):
             messages.error(request, 'Choose the entire appointment slot shown in the calendar.')
-            return redirect('counselor:appointment_calendar')
+            return redirect(calendar_url)
         ends_at = timezone.make_aware(datetime.combine(day, rule.end_time), timezone.get_current_timezone())
         if CounselorUnavailableTime.objects.filter(counselor=rule.counselor, starts_at__lt=ends_at, ends_at__gt=starts_at).exists():
             messages.error(request, 'That appointment time is no longer available.')
-            return redirect('counselor:appointment_calendar')
+            return redirect(calendar_url)
         if AppointmentBooking.objects.filter(counselor=rule.counselor, status=AppointmentBooking.Status.BOOKED, starts_at__lt=ends_at, ends_at__gt=starts_at).exists():
             messages.error(request, 'That appointment slot has already been booked.')
-            return redirect('counselor:appointment_calendar')
+            return redirect(calendar_url)
         booking = AppointmentBooking.objects.create(student=request.user, counselor=rule.counselor, availability=rule, starts_at=starts_at, ends_at=ends_at)
     conversation, _ = _get_or_create_conversation(request.user, rule.counselor)
     student_name = request.user.get_full_name() or request.user.username

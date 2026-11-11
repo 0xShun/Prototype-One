@@ -1,8 +1,10 @@
 import os
+from datetime import timedelta
 
 os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.utils import timezone
 
 from playwright.sync_api import sync_playwright
 from unittest.mock import patch
@@ -139,6 +141,37 @@ class BrowserFlowTests(StaticLiveServerTestCase):
                 self.assertGreater(student_box['x'], counselor_box['x'])
             else:
                 self.assertGreater(counselor_box['x'], student_box['x'])
+
+    def test_mobile_month_calendar_create_and_book_future_slot(self):
+        counselor = create_counselor('browsercalendarcounselor')
+        student = create_student('browsercalendarstudent')
+        future = (timezone.localdate().replace(day=1) + timedelta(days=65)).replace(day=15)
+        month = future.strftime('%Y-%m')
+        self.login_as(counselor.username)
+        self.page.goto(f'{self.live_server_url}/counselor/availability/')
+        self.page.get_by_role('link', name='Next month').click()
+        self.page.get_by_role('link', name='Next month').click()
+        self.page.locator(f'.month-calendar__day[href*="date={future.isoformat()}"]').click()
+        self.page.get_by_role('button', name='Add availability').click()
+        self.page.locator('#id_availability-start_time').fill('15:00')
+        self.page.locator('#id_availability-end_time').fill('14:00')
+        self.page.get_by_role('button', name='Add availability', exact=True).last.click()
+        self.assertTrue(self.page.locator('#availability-modal').is_visible())
+        self.assertIn('end time must be after', self.page.locator('#availability-modal').inner_text())
+        self.page.locator('#id_availability-start_time').fill('13:00')
+        self.page.locator('#id_availability-end_time').fill('14:00')
+        self.page.get_by_role('button', name='Add availability', exact=True).last.click()
+        self.assertIn('1:00 PM to 2:00 PM', self.page.locator('.month-calendar__details').inner_text())
+
+        self.login_as(student.username)
+        self.page.goto(f'{self.live_server_url}/counselor/appointments/?month={month}&date={future.isoformat()}&counselor_id={counselor.id}')
+        self.assertIn('1:00 PM to 2:00 PM', self.page.locator('.month-calendar__details').inner_text())
+        self.page.get_by_role('button', name='Book slot').click()
+        self.page.wait_for_url(f'{self.live_server_url}/counselor/appointments/mine/')
+        self.login_as(counselor.username)
+        self.page.goto(f'{self.live_server_url}/counselor/availability/?month={month}&date={future.isoformat()}')
+        self.assertIn(student.username, self.page.locator('.month-calendar__details').inner_text())
+        self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > window.innerWidth'))
 
     def test_public_home_page_renders_on_mobile(self):
         self.page.goto(f'{self.live_server_url}/')

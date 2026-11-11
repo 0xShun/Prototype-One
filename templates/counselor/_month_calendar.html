@@ -1,0 +1,40 @@
+<div class="month-calendar">
+    <p class="month-calendar__hint">Select a date to view its schedule.</p>
+    <div class="month-calendar__navigation">
+        {% if previous_month %}
+            <a class="month-calendar__arrow" href="?month={{ previous_month }}{% if selected_counselor %}&amp;counselor_id={{ selected_counselor.id }}{% endif %}" aria-label="Previous month">&#8249;</a>
+        {% else %}
+            <span class="month-calendar__arrow" aria-hidden="true"></span>
+        {% endif %}
+        <h3>{{ month_start|date:"F Y" }}</h3>
+        {% if next_month %}
+            <a class="month-calendar__arrow" href="?month={{ next_month }}{% if selected_counselor %}&amp;counselor_id={{ selected_counselor.id }}{% endif %}" aria-label="Next month">&#8250;</a>
+        {% else %}
+            <span class="month-calendar__arrow" aria-hidden="true"></span>
+        {% endif %}
+        <a class="month-calendar__today" href="?month={{ today|date:'Y-m' }}&amp;date={{ today|date:'Y-m-d' }}{% if selected_counselor %}&amp;counselor_id={{ selected_counselor.id }}{% endif %}">Today</a>
+    </div>
+    <div class="month-calendar__grid">
+        <span class="month-calendar__weekday" aria-label="Monday">Mon</span>
+        <span class="month-calendar__weekday" aria-label="Tuesday">Tue</span>
+        <span class="month-calendar__weekday" aria-label="Wednesday">Wed</span>
+        <span class="month-calendar__weekday" aria-label="Thursday">Thu</span>
+        <span class="month-calendar__weekday" aria-label="Friday">Fri</span>
+        <span class="month-calendar__weekday" aria-label="Saturday">Sat</span>
+        <span class="month-calendar__weekday" aria-label="Sunday">Sun</span>
+        {% for blank in leading_days %}<span aria-hidden="true"></span>{% endfor %}
+        {% for day in calendar_days %}
+            <a class="month-calendar__day{% if day.date == selected_date %} month-calendar__day--selected{% endif %}{% if day.date == today %} month-calendar__day--today{% endif %}"
+               href="?month={{ month_value }}&amp;date={{ day.date|date:'Y-m-d' }}{% if selected_counselor %}&amp;counselor_id={{ selected_counselor.id }}{% endif %}#selected-day-title"
+               aria-label="{{ day.date|date:'l, F j, Y' }}{% if day.has_available %}, available{% endif %}{% if day.has_booked %}, booked{% endif %}{% if day.has_unavailable %}, unavailable{% endif %}"
+               {% if day.date == selected_date %}aria-current="date"{% endif %}>
+                <span>{{ day.date.day }}</span>
+                <span class="month-calendar__dots" aria-hidden="true">
+                    {% if day.has_available %}<i class="schedule-dot schedule-dot--available"></i>{% endif %}
+                    {% if day.has_booked %}<i class="schedule-dot schedule-dot--booked"></i>{% endif %}
+                    {% if day.has_unavailable %}<i class="schedule-dot schedule-dot--unavailable"></i>{% endif %}
+                </span>
+            </a>
+        {% endfor %}
+    </div>
+</div>

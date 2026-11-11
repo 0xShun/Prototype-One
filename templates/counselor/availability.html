@@ -10,33 +10,31 @@
             <div class="schedule-calendar__legend" aria-label="Calendar legend">
                 <span><i class="schedule-dot schedule-dot--available"></i>Available</span>
                 <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
+                <span><i class="schedule-dot schedule-dot--unavailable"></i>Unavailable</span>
             </div>
         </div>
-        <div class="schedule-calendar__grid">
-            {% for day in calendar_days %}
-                <article class="schedule-day{% if day.is_today %} schedule-day--today{% endif %}{% if day.is_past %} schedule-day--past{% endif %}">
-                    <header>
-                        <span>{{ day.date|date:"D" }}</span>
-                        {% if not day.is_selectable %}
-                            <strong>{{ day.date|date:"j" }}</strong>
-                        {% else %}
-                            <button class="schedule-day__add" type="button" data-date="{{ day.date|date:'Y-m-d' }}" aria-label="Add availability on {{ day.date|date:'F j, Y' }}">+</button>
-                        {% endif %}
-                    </header>
-                    {% if day.events %}
-                        <div class="schedule-day__events">
-                            {% for event in day.events %}
-                                <div class="schedule-event schedule-event--{{ event.kind }}">
-                                    <strong>{{ event.label }}</strong>
-                                    <span>{{ event.detail }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <span class="schedule-day__empty">No events</span>
-                    {% endif %}
-                </article>
-            {% endfor %}
+        <div class="month-calendar-layout">
+            {% include 'counselor/_month_calendar.html' %}
+            <section class="month-calendar__details" aria-labelledby="selected-day-title">
+                <h3 id="selected-day-title">{{ selected_date|date:"l, F j, Y" }}</h3>
+                {% if selected_day.events %}
+                    <div class="schedule-day__events">
+                        {% for event in selected_day.events %}
+                            <div class="schedule-event schedule-event--{{ event.kind }}">
+                                <strong>{{ event.label }}</strong>
+                                <span>{{ event.detail }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>No events for this day.</p>
+                {% endif %}
+                {% if selected_day.is_selectable %}
+                    <button class="btn btn-primary schedule-day__add-slot" type="button" data-date="{{ selected_date|date:'Y-m-d' }}">Add availability</button>
+                {% else %}
+                    <p>Availability can only be added for future dates.</p>
+                {% endif %}
+            </section>
         </div>
     </section>
     <dialog class="schedule-modal" id="availability-modal" aria-labelledby="availability-modal-title">
@@ -66,6 +64,9 @@
             {{ availability_form.non_field_errors }}
             {{ availability_form.start_time.errors }}
             {{ availability_form.end_time.errors }}
+            {{ availability_form.weekday.errors }}
+            {{ availability_form.effective_from.errors }}
+            {{ availability_form.effective_until.errors }}
             <div class="schedule-modal__actions">
                 <button class="btn btn-secondary" type="button" data-close-availability>Cancel</button>
                 <button class="btn btn-primary" type="submit" name="save_availability">Add availability</button>
@@ -84,7 +85,7 @@
             return;
         }
 
-        document.querySelectorAll('.schedule-day__add').forEach((button) => {
+        document.querySelectorAll('.schedule-day__add-slot').forEach((button) => {
             button.addEventListener('click', () => {
                 const date = button.dataset.date;
                 const [year, month, day] = date.split('-').map(Number);
@@ -111,6 +112,10 @@
                 modal.close();
             }
         });
+        {% if availability_errors %}
+        selectedDate.textContent = "{{ selected_date|date:'l, F j, Y'|escapejs }}";
+        modal.showModal();
+        {% endif %}
     })();
 </script>
 {% endblock %}

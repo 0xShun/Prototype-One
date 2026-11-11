@@ -4,9 +4,11 @@
     <div class="appointment-page__header">
         <div>
             <h2>Book a counseling appointment</h2>
-            <p>Select a counselor to view their appointment calendar. Green slots are open; gray slots are unavailable.</p>
+            <p>Select a counselor and a date to view their appointment slots.</p>
         </div>
         <form method="get" class="counselor-picker">
+            <input type="hidden" name="month" value="{{ month_value }}">
+            <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
             <label for="counselor-picker">Counselor</label>
             <select id="counselor-picker" name="counselor_id" onchange="this.form.submit()">
                 {% for counselor in counselors %}
@@ -17,6 +19,7 @@
                     <option>No counselors available</option>
                 {% endfor %}
             </select>
+            <noscript><button class="btn btn-secondary" type="submit">Show calendar</button></noscript>
         </form>
     </div>
     <p><a class="text-link" href="{% url 'counselor:urgent_help' %}">Need help today? Request urgent help</a></p>
@@ -29,18 +32,16 @@
                 <div class="schedule-calendar__legend" aria-label="Calendar legend">
                     <span><i class="schedule-dot schedule-dot--available"></i>Open</span>
                     <span><i class="schedule-dot schedule-dot--booked"></i>Booked</span>
+                    <span><i class="schedule-dot schedule-dot--unavailable"></i>Unavailable</span>
                 </div>
             </div>
-            <div class="schedule-calendar__grid">
-                {% for day in calendar_days %}
-                    <article class="schedule-day{% if day.date == today %} schedule-day--today{% endif %}{% if day.date < today %} schedule-day--past{% endif %}">
-                        <header>
-                            <span>{{ day.date|date:"D" }}</span>
-                            <strong>{{ day.date|date:"j" }}</strong>
-                        </header>
-                        {% if day.slots %}
+            <div class="month-calendar-layout">
+                {% include 'counselor/_month_calendar.html' %}
+                <section class="month-calendar__details" aria-labelledby="selected-day-title">
+                    <h3 id="selected-day-title">{{ selected_date|date:"l, F j, Y" }}</h3>
+                        {% if selected_day.slots %}
                             <div class="schedule-day__events">
-                                {% for slot in day.slots %}
+                                {% for slot in selected_day.slots %}
                                     <div class="schedule-event schedule-event--{{ slot.status }}">
                                         <strong>{{ slot.starts_at|date:"g:i A" }} to {{ slot.ends_at|date:"g:i A" }}</strong>
                                         {% if slot.status == "available" %}
@@ -59,10 +60,9 @@
                                 {% endfor %}
                             </div>
                         {% else %}
-                            <span class="schedule-day__empty">No slots</span>
+                            <p>{% if selected_date <= today %}Appointments can only be booked for future dates.{% else %}No appointment slots for this day.{% endif %}</p>
                         {% endif %}
-                    </article>
-                {% endfor %}
+                </section>
             </div>
         </section>
     {% else %}

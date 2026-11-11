@@ -488,7 +488,7 @@ class CounselorAccessTests(TestCase):
 
         calendar_response = self.client.get(
             reverse('counselor:appointment_calendar'),
-            {'counselor_id': self.counselor.id},
+            {'counselor_id': self.counselor.id, 'month': appointment_date.strftime('%Y-%m'), 'date': appointment_date.isoformat()},
         )
         self.assertContains(calendar_response, '1:00 PM to 2:00 PM')
         booking_response = self.client.post(reverse('counselor:book_appointment'), {
@@ -551,6 +551,96 @@ class CounselorAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertFalse(AppointmentBooking.objects.filter(student=self.high_student).exists())
+
+    def test_calendar_month_navigation_and_validation(self):
+        for user, route in (
+            (self.counselor, 'counselor:availability'),
+            (self.high_student, 'counselor:appointment_calendar'),
+        ):
+            self.client.force_login(user)
+            response = self.client.get(reverse(route), {'month': '2028-02', 'date': '2028-02-29'})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context['calendar_days']), 29)
+            self.assertEqual(response.context['previous_month'], '2028-01')
+            self.assertEqual(response.context['next_month'], '2028-03')
+            self.assertEqual(response.context['selected_date'].isoformat(), '2028-02-29')
+            response = self.client.get(reverse(route), {'month': '2027-12'})
+            self.assertEqual(response.context['next_month'], '2028-01')
+            for params in ({'month': '2028-13'}, {'month': '2028-02', 'date': '2028-02-30'},
+                           {'month': '2028-02', 'date': '2028-03-01'}, {'month': 'abc'}):
+                self.assertEqual(self.client.get(reverse(route), params).status_code, 400)
+
+    def test_future_month_slots_and_availability_errors(self):
+        future = timezone.localdate().replace(day=1) + timedelta(days=65)
+        rule = CounselorAvailability.objects.create(
+            counselor=self.counselor, weekday=future.weekday(), start_time=time(13),
+            end_time=time(14), effective_from=future, effective_until=future,
+        )
+        query = {'month': future.strftime('%Y-%m'), 'date': future.isoformat()}
+        self.client.force_login(self.high_student)
+        response = self.client.get(reverse('counselor:appointment_calendar'), {**query, 'counselor_id': self.counselor.id})
+        self.assertContains(response, '1:00 PM to 2:00 PM')
+        self.assertContains(response, 'Book slot')
+        self.client.force_login(self.counselor)
+        response = self.client.get(reverse('counselor:availability'), query)
+        self.assertContains(response, '1:00 PM to 2:00 PM')
+        response = self.client.post(reverse('counselor:availability') + f'?month={query["month"]}&date={query["date"]}', {
+            'save_availability': '1', 'availability-weekday': future.weekday(),
+            'availability-effective_from': future.isoformat(),
+            'availability-effective_until': future.isoformat(),
+            'availability-start_time': '13:00', 'availability-end_time': '14:00',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['availability_errors'])
+        self.assertContains(response, 'overlaps another availability slot')
+        self.assertEqual(CounselorAvailability.objects.filter(pk=rule.pk).count(), 1)
+
+    def test_calendar_preserves_counselor_and_reports_unavailable_time(self):
+        future = timezone.localdate().replace(day=1) + timedelta(days=65)
+        rule = CounselorAvailability.objects.create(
+            counselor=self.counselor, weekday=future.weekday(), start_time=time(13),
+            end_time=time(14), effective_from=future, effective_until=future,
+        )
+        starts_at = timezone.make_aware(datetime.combine(future, time(13)))
+        CounselorUnavailableTime.objects.create(
+            counselor=self.counselor, starts_at=starts_at,
+            ends_at=starts_at + timedelta(hours=1), reason='Unavailable',
+        )
+        self.client.force_login(self.high_student)
+        response = self.client.get(reverse('counselor:appointment_calendar'), {
+            'month': future.strftime('%Y-%m'), 'date': future.isoformat(), 'counselor_id': self.counselor.id,
+        })
+        self.assertContains(response, 'Unavailable')
+        self.assertNotContains(response, 'Book slot')
+        self.assertContains(response, f'counselor_id={self.counselor.id}')
+        self.assertTrue(response.context['selected_day']['has_unavailable'])
+        self.assertEqual(response.context['selected_day']['slots'][0]['availability'], rule)
+
+    def test_calendar_shows_past_bookings_but_not_same_day_as_available(self):
+        today = timezone.localdate()
+        yesterday = today - timedelta(days=1)
+        rule = CounselorAvailability.objects.create(
+            counselor=self.counselor, weekday=yesterday.weekday(), start_time=time(13),
+            end_time=time(14), effective_from=yesterday, effective_until=yesterday,
+        )
+        starts_at = timezone.make_aware(datetime.combine(yesterday, time(13)))
+        AppointmentBooking.objects.create(
+            student=self.high_student, counselor=self.counselor, availability=rule,
+            starts_at=starts_at, ends_at=starts_at + timedelta(hours=1),
+        )
+        CounselorAvailability.objects.create(
+            counselor=self.counselor, weekday=today.weekday(), start_time=time(23),
+            end_time=time(23, 59), effective_from=today, effective_until=today,
+        )
+        self.client.force_login(self.counselor)
+        response = self.client.get(reverse('counselor:availability'), {
+            'month': yesterday.strftime('%Y-%m'), 'date': yesterday.isoformat(),
+        })
+        self.assertContains(response, self.high_student.username)
+        response = self.client.get(reverse('counselor:availability'), {
+            'month': today.strftime('%Y-%m'), 'date': today.isoformat(),
+        })
+        self.assertFalse(response.context['selected_day']['has_available'])
 
     def test_weekly_elevated_digest_sends_once_per_counselor_and_week(self):
         output = StringIO()
